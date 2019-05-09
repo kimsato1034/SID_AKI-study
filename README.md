@@ -40,7 +40,7 @@ Systolic BP Minimum (mmHg) DONE
 Systolic BP Mean (mmHg) DONE  
 Diastolic BP Minimum (mmHg) DONE  
 Diastolic BP Mean (mmHg) DONE  
-Temperature Maximum (Celsius)  
+Temperature Maximum (Celsius) DONE  
 SpO2 Minimum (%)  
 
 SpO2 Mean (%)  
