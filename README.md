@@ -17,9 +17,9 @@ time)
 admission  
 
 # Kidney function
-Creatinine: Baseline (within three months before admission) (if no record, it’s missing value) DONE 
-Creatinine: At admission (the first available creatinine 24 hours prior to, or 6 hours after, ICU admission) DONE 
-Creatinine: ICU day0, day1, day2, day3, day4, day5, day6, day7 (maximum value on each day) 
+Creatinine: Baseline (within three months before admission) (if no record, it’s missing value) DONE . 
+Creatinine: At admission (the first available creatinine 24 hours prior to, or 6 hours after, ICU admission) DONE . 
+Creatinine: ICU day0, day1, day2, day3, day4, day5, day6, day7 (maximum value on each day) . 
 
 # Lab data (maximum and minimum) within the first 24 hours and within 48 hours after ICU admission
 
