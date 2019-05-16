@@ -17,8 +17,8 @@ time)
 admission  
 
 # Kidney function
-- Creatinine: Baseline (within three months before admission) (if no record, it’s missing value) - [x] . 
-- Creatinine: At admission (the first available creatinine 24 hours prior to, or 6 hours after, ICU admission) - [x] . 
+- [x] Creatinine: Baseline (within three months before admission) (if no record, it’s missing value) 
+- [x] Creatinine: At admission (the first available creatinine 24 hours prior to, or 6 hours after, ICU admission) 
 - Creatinine: ICU day0, day1, day2, day3, day4, day5, day6, day7 (maximum value on each day) . 
 
 # Lab data (maximum and minimum) within the first 24 hours and within 48 hours after ICU admission
@@ -34,13 +34,13 @@ CRP _NOT FOUND_
 - [x] Bilirubin   
 
 # Vital sign and others: within the first 24 hours and 48 hours after ICU admission
-Heart Rate Maximum (bpm) - [x]  
-Heart Rate Mean (bpm) - [x]  
-Systolic BP Minimum (mmHg) - [x]  
-Systolic BP Mean (mmHg) - [x]  
-Diastolic BP Minimum (mmHg) - [x]  
-Diastolic BP Mean (mmHg) - [x]  
-Temperature Maximum (Celsius) - [x]  
+- [x] Heart Rate Maximum (bpm) 
+- [x] Heart Rate Mean (bpm) 
+- [x] Systolic BP Minimum (mmHg) 
+- [x] Systolic BP Mean (mmHg) 
+- [x] Diastolic BP Minimum (mmHg) 
+- [x] Diastolic BP Mean (mmHg) 
+- [x] Temperature Maximum (Celsius) 
 SpO2 Minimum (%)  
 
 SpO2 Mean (%)  
@@ -66,8 +66,7 @@ Pre-ICU length of stay in hospital (days)
 
 # Outcomes
 AKI (0 or 1) and the stage (1, 2, or 3) (using KDIGO criteria based on creatinine, urine output, and renal  
-replacement therapy): within 7 days after ICU admission and the date of the development of AKI (ex.  
-ICU day2 etc)  
+replacement therapy): within 7 days after ICU admission and the date of the development of AKI (ex.ICU day2 etc)  
 ICU mortality (0 or 1)  
 Hospital mortality (0 or 1)  
 Length of stay in ICU  
@@ -81,6 +80,7 @@ ACE-I (0 or 1)
 ARB (0 or 1)  
 Calcium channel blocker (0 or 1)  
 β blocker (0 or 1)  
+
 # Severity score (ICU day 0 and ICU day 1)  
 SOFA  
 APACHE III  
