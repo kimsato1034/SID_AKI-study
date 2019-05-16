@@ -7,12 +7,21 @@ First admission to ICU
 Data extraction
 ※The day of ICU admission is “ICU day 0”
 
-# Blood gas analysis and lab data
+# Blood gas analysis
 
 Chloride, Sodium, Potassium, Calcium, Magnesium, Lactate, pCO2, Bicarbonate, Base excess, Phosphate,
 pH, pO2, SID (=Sodium minus chloride: for this calculation, these ions need to be measured at the same
 time)
-1. At admission (the first available data 24 hours prior to, or 6 hours after, ICU admission)  
+- [x] At admission (the first available data 24 hours prior to, or 6 hours after, ICU admission)  
+2. Maximum value, minimum value, and time-weighted mean for 24 hours and for 48 hours after ICU  
+admission  
+
+# Lab data
+
+Chloride, Sodium, Potassium, Calcium, Magnesium, Lactate, pCO2, Bicarbonate, Base excess, Phosphate,
+pH, pO2, SID (=Sodium minus chloride: for this calculation, these ions need to be measured at the same
+time)
+- [x] At admission (the first available data 24 hours prior to, or 6 hours after, ICU admission)  
 2. Maximum value, minimum value, and time-weighted mean for 24 hours and for 48 hours after ICU  
 admission  
 
