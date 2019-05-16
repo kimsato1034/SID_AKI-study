@@ -17,30 +17,30 @@ time)
 admission  
 
 # Kidney function
-- Creatinine: Baseline (within three months before admission) (if no record, it’s missing value) [x] . 
-- Creatinine: At admission (the first available creatinine 24 hours prior to, or 6 hours after, ICU admission) [x] . 
+- Creatinine: Baseline (within three months before admission) (if no record, it’s missing value) - [x] . 
+- Creatinine: At admission (the first available creatinine 24 hours prior to, or 6 hours after, ICU admission) - [x] . 
 - Creatinine: ICU day0, day1, day2, day3, day4, day5, day6, day7 (maximum value on each day) . 
 
 # Lab data (maximum and minimum) within the first 24 hours and within 48 hours after ICU admission
 
-Glucose Level (mg/dL) [x]
-Hemoglobin Level (g/dL) [x]
-Hematocrit (%)  [x]
-Platelet Count (K/μL) [x]  
-Blood Urea Nitrogen Level (mg/dL) [x]  
-White Blood Cell Count (K/μL) [x]
-Albumin [x]
-CRP _NOT FOUND YET_
-Bilirubin [x]
+Glucose Level (mg/dL) - [x]  
+Hemoglobin Level (g/dL) - [x]  
+Hematocrit (%)  - [x]  
+Platelet Count (K/μL) - [x]  
+Blood Urea Nitrogen Level (mg/dL) - [x]  
+White Blood Cell Count (K/μL) - [x]  
+Albumin - [x]  
+CRP _NOT FOUND YET_  
+Bilirubin - [x]  
 
 # Vital sign and others: within the first 24 hours and 48 hours after ICU admission
-Heart Rate Maximum (bpm) [x]  
-Heart Rate Mean (bpm) [x]  
-Systolic BP Minimum (mmHg) [x]  
-Systolic BP Mean (mmHg) [x]  
-Diastolic BP Minimum (mmHg) [x]  
-Diastolic BP Mean (mmHg) [x]  
-Temperature Maximum (Celsius) [x]  
+Heart Rate Maximum (bpm) - [x]  
+Heart Rate Mean (bpm) - [x]  
+Systolic BP Minimum (mmHg) - [x]  
+Systolic BP Mean (mmHg) - [x]  
+Diastolic BP Minimum (mmHg) - [x]  
+Diastolic BP Mean (mmHg) - [x]  
+Temperature Maximum (Celsius) - [x]  
 SpO2 Minimum (%)  
 
 SpO2 Mean (%)  
