@@ -23,15 +23,15 @@ admission
 
 # Lab data (maximum and minimum) within the first 24 hours and within 48 hours after ICU admission
 
-Glucose Level (mg/dL) - [x]  
-Hemoglobin Level (g/dL) - [x]  
-Hematocrit (%)  - [x]  
-Platelet Count (K/μL) - [x]  
-Blood Urea Nitrogen Level (mg/dL) - [x]  
-White Blood Cell Count (K/μL) - [x]  
-Albumin - [x]  
-CRP _NOT FOUND YET_  
-Bilirubin - [x]  
+- [x] Glucose Level (mg/dL)   
+- [x] Hemoglobin Level (g/dL)   
+- [x] Hematocrit (%)    
+- [x] Platelet Count (K/μL)   
+- [x] Blood Urea Nitrogen Level (mg/dL)   
+- [x] White Blood Cell Count (K/μL)   
+- [x] Albumin   
+CRP _NOT FOUND_  
+- [x] Bilirubin   
 
 # Vital sign and others: within the first 24 hours and 48 hours after ICU admission
 Heart Rate Maximum (bpm) - [x]  
