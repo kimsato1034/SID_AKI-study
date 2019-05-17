@@ -10,20 +10,31 @@ Data extraction
 # Blood gas analysis
 
 Chloride, Sodium, Potassium, Calcium, Magnesium, Lactate, pCO2, Bicarbonate, Base excess, Phosphate,
-pH, pO2, SID (=Sodium minus chloride: for this calculation, these ions need to be measured at the same
-time)
-- [x] At admission (the first available data 24 hours prior to, or 6 hours after, ICU admission)  
-2. Maximum value, minimum value, and time-weighted mean for 24 hours and for 48 hours after ICU  
-admission  
+pH, pO2.
+
+- [x] At admission (the first available data 24 hours prior to, or 6 hours after, ICU admission).
+- [x] Maximum value, minimum value for 24 hours after ICU admission.
+- [x] Maximum value, minimum value for 48 hours after ICU admission.
+- time-weighted mean for 24 hours.   
+- time-weighted mean for 48 hours after ICU admission.
+
+## SID (Sodium minus chloride: for this calculation, these ions need to be measured at the same time)
+- [x] At admission (the first available data 24 hours prior to, or 6 hours after, ICU admission).
+- [x] Maximum value, minimum value for 24 hours after ICU admission.  
+- [x] Maximum value, minimum value for 48 hours after ICU admission.  
+- time-weighted mean for 24 hours.  
+- time-weighted mean for 48 hours after ICU admission.
 
 # Lab data
 
 Chloride, Sodium, Potassium, Calcium, Magnesium, Lactate, pCO2, Bicarbonate, Base excess, Phosphate,
 pH, pO2, SID (=Sodium minus chloride: for this calculation, these ions need to be measured at the same
 time)
-- [x] At admission (the first available data 24 hours prior to, or 6 hours after, ICU admission)  
-2. Maximum value, minimum value, and time-weighted mean for 24 hours and for 48 hours after ICU  
-admission  
+- [x] At admission (the first available data 24 hours prior to, or 6 hours after, ICU admission).
+- [x] Maximum value, minimum value for 24 hours after ICU admission.
+- [x] Maximum value, minimum value for 48 hours after ICU admission.
+- time-weighted mean for 24 hours 
+- time-weighted mean for 48 hours after ICU admission.
 
 # Kidney function
 - [x] Creatinine: Baseline (within three months before admission) (if no record, it’s missing value) 
@@ -42,7 +53,22 @@ admission
 CRP _NOT FOUND_  
 - [x] Bilirubin   
 
-# Vital sign and others: within the first 24 hours and 48 hours after ICU admission
+# Vital sign and others: within the first 24 hours after ICU admission
+- [x] Heart Rate Maximum (bpm) 
+- [x] Heart Rate Mean (bpm) 
+- [x] Systolic BP Minimum (mmHg) 
+- [x] Systolic BP Mean (mmHg) 
+- [x] Diastolic BP Minimum (mmHg) 
+- [x] Diastolic BP Mean (mmHg) 
+- [x] Temperature Maximum (Celsius) 
+SpO2 Minimum (%)  
+SpO2 Mean (%)  
+Respiratory rate Maximum (/min)  
+- [x] Urine output (ml)  
+Fluid intake (ml)  
+Vasopressors (Noradrenaline, adrenaline, vasopressin, dobutamine, and dopamine) (0 or 1, respectively)  
+
+# Vital sign and others: within the first 48 hours after ICU admission
 - [x] Heart Rate Maximum (bpm) 
 - [x] Heart Rate Mean (bpm) 
 - [x] Systolic BP Minimum (mmHg) 
@@ -54,20 +80,24 @@ SpO2 Minimum (%)
 
 SpO2 Mean (%)  
 Respiratory rate Maximum (/min)  
-Urine output (ml)  
+- [x] Urine output (ml)  
 Fluid intake (ml)  
 Vasopressors (Noradrenaline, adrenaline, vasopressin, dobutamine, and dopamine) (0 or 1, respectively)  
 
 # Other covariates
-Gender  
-Age  
-Weight  
-Ethnicity  
-ICU type: medical ICU, cardiac ICU, or surgical ICU  
-Mechanical Ventilation in the first 24 hours and 48 hours after ICU admission (0 or 1)  
-Surgical patient or not (0 or 1) before ICU admission; if so, type of surgery  
-Admission type: emergency or not  
-Main diagnosis for the admission  
+- [x] Gender  
+- [x] Age  
+- [x] Weight
+- [x] height
+- [x] BMI
+- [x] BMI Group
+- [x] Ethnicity  
+- [x] ICU type: medical ICU, cardiac ICU, or surgical ICU  
+- [x] Mechanical Ventilation in the first 24 hours after ICU admission (0 or 1)  
+- [x] Mechanical Ventilation 48 hours after ICU admission (0 or 1) 
+- [x] Surgical patient or not (0 or 1) before ICU admission; if so, type of surgery  
+- [x] Admission type: emergency or not  
+- [x] Main diagnosis for the admission  
 Sepsis (0 or 1)  
 Burn (0 or 1)  
 Trauma (0 or 1)  
@@ -77,10 +107,10 @@ Pre-ICU length of stay in hospital (days)
 AKI (0 or 1) and the stage (1, 2, or 3) (using KDIGO criteria based on creatinine, urine output, and renal  
 replacement therapy): within 7 days after ICU admission and the date of the development of AKI (ex.ICU day2 etc)  
 ICU mortality (0 or 1)  
-Hospital mortality (0 or 1)  
-Length of stay in ICU  
-Length of stay in hospital  
-Length of mechanical ventilation  
+- [x] Hospital mortality (0 or 1)  
+- [x] Length of stay in ICU  
+- [x] Length of stay in hospital  
+- [x] Length of mechanical ventilation  
 Length of renal replacement therapy  
 
 # Medication (Before or at the time of admission)
@@ -95,10 +125,10 @@ SOFA
 APACHE III  
 
 # Past medical history
-Congestive heart failure  
-Peripheral vascular disease  
-Hypertension  
-Chronic pulmonary disease  
-Diabetes mellitus  
-Chronic liver disease  
-Malignancy  
+- [x] Congestive heart failure  
+- [x] Peripheral vascular disease  
+- [x] Hypertension  
+- [x] Chronic pulmonary disease  
+- [x] Diabetes mellitus  
+- [x] Chronic liver disease  
+- [x] Malignancy  

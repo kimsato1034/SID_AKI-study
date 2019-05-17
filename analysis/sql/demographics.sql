@@ -123,6 +123,10 @@ SELECT
   DISTINCT demographics.patientunitstayid,
   demographics.age_fixed,
   demographics.gender,
+  apacheadmissiondx,
+  ethnicity, 
+  hospitaladmitsource,
+  unitadmitsource,
   weight_avg AS weight,
   height,
   BMI,
@@ -154,4 +158,4 @@ LEFT JOIN
 ON
   demographics.patientunitstayid = patient.patientunitstayid
 WHERE
-  age_fixed >= 18
+  age_fixed >= 18 

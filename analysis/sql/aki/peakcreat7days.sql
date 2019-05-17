@@ -1,3 +1,9 @@
+-- ------------------------------------------------------------------
+-- Title: Peak creatinine within 7 days.
+-- Notes: cap_leak_index/analysis/sql/aki/peakcreat7days.sql 
+--        cap_leak_index, 20190511 NYU Datathon
+--        eICU Collaborative Research Database v2.0.
+-- ------------------------------------------------------------------
 WITH peakcr 
      AS (SELECT * 
          FROM   (SELECT patientunitstayid, 
@@ -6,8 +12,8 @@ WITH peakcr
                         Row_number() 
                           OVER ( 
                             partition BY patientunitstayid 
-                            ORDER BY lab.labresult DESC) AS position 
-                 FROM   lab 
+                            ORDER BY labresult DESC) AS position 
+                 FROM   `physionet-data.eicu_crd.lab` 
                  WHERE  labname LIKE 'creatinine%' 
                         AND labresultoffset >= 0 
                         AND labresultoffset <= 10080 
@@ -17,12 +23,13 @@ WITH peakcr
                  ORDER  BY patientunitstayid, 
                            labresultoffset) AS temp 
          WHERE  position = 1) 
-SELECT pt.patientunitstayid, 
+SELECT patientunitstayid, 
        peakcreat7d, 
        peakcreat7d_offset, 
-       ( pt.unitdischargeoffset - peakcreat7d_offset ) AS 
+       ( unitdischargeoffset - peakcreat7d_offset ) AS 
        peakcreat7d_to_discharge_offsetgap 
-FROM   patient pt 
-       LEFT OUTER JOIN peakcr 
-                    ON peakcr.patientunitstayid = pt.patientunitstayid 
-ORDER  BY pt.patientunitstayid 
+FROM   `physionet-data.eicu_crd.patient`
+       LEFT OUTER JOIN peakcr USING (patientunitstayid)
+ORDER  BY patientunitstayid 
+
+
