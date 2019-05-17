@@ -65,11 +65,12 @@ Loads all queries from the sql files in the extraction folder and runs them into
 #cat(list.files('sql'), sep = '\n')
 
 # AKI related variables
-baseline_creat<-run_query(getSQL("baseline_creat.sql"))
-chronicAKI<-run_query(getSQL("chronicAKI.sql"))
-first_rrt<-run_query(getSQL("first_rrt.sql"))
-peakcreat48h<-run_query(getSQL("peakcreat48h.sql"))
-peakcreat7days<-run_query(getSQL("peakcreat7days.sql"))
+baseline_creat<-run_query(getSQL("sql/aki/baseline_creat.sql"))
+chronicAKI<-run_query(getSQL("sql/aki/chronicAKI.sql"))
+first_rrt<-run_query(getSQL("sql/aki/first_rrt.sql"))
+peakcreat48h<-run_query(getSQL("sql/aki/peakcreat48h.sql"))
+peakcreat7days<-run_query(getSQL("sql/aki/peakcreat7days.sql"))
+
 # rest of the variables
 bg_24_48<-run_query(getSQL("sql/bg_24_48.sql"))
 bg_first<-run_query(getSQL("sql/bg_first.sql"))
@@ -78,10 +79,8 @@ lab_24_48<-run_query(getSQL("sql/lab_24_48.sql"))
 lab_first<-run_query(getSQL("sql/lab_first.sql"))
 outcomes<-run_query(getSQL("sql/outcomes.sql"))
 pasthistory<-run_query(getSQL("sql/pasthistory.sql"))
-README.md<-run_query(getSQL("sql/README.md"))
 sid_24_48<-run_query(getSQL("sql/sid_24_48.sql"))
 sid_first<-run_query(getSQL("sql/sid_first.sql"))
-sofa<-run_query(getSQL("sql/sofa"))
 temp_day1<-run_query(getSQL("sql/temp_day1.sql"))
 temp_day2<-run_query(getSQL("sql/temp_day2.sql"))
 urine_output_24_48<-run_query(getSQL("sql/urine_output_24_48.sql"))
@@ -228,33 +227,40 @@ We are using a left join to join them
 
 ```{r}
 # left join = all.x=TRUE
-sid_aki<-Reduce(function(...) merge(..., all.x=TRUE), list(
- demographics.sql
-, bg_24_48.sql
-, bg_first.sql
-, lab_24_48.sql
-, lab_first.sql
-, outcomes.sql
-, pasthistory.sql
-, README.md
-, sid_24_48.sql
-, sid_first.sql
-, sofa
-, temp_day1.sql
-, temp_day2.sql
-, urine_output_24_48.sql
-, vent_bin_first_2days.sql
-, vitals_day1.sql
-, vitals_day2.sql
+sid_aki_study<-Reduce(function(...) merge(..., all.x=TRUE), list(
+  demographics
+, bg_first
+, bg_24_48
+, lab_first
+, lab_24_48
+, outcomes
+, pasthistory
+, sid_first
+, sid_24_48
+, temp_day1
+, temp_day2
+, urine_output_24_48
+, vent_bin_first_2days
+, vitals_day1
+, vitals_day2
 , AKIlist_final
 ))
+
+cat(names(sid_aki_study),sep = '\n')
 ```
 
 # Dataset report
 
 ```{r}
-view(dfSummary(eicu_oasis_vs_brazilian_score_df))
+view(dfSummary(sid_aki_study))
 ```
+
+# Export dataset
+
+```{r}
+write.csv(sid_aki_study,'sid_aki_study.csv',row.names = F)
+```
+
 
 
 
