@@ -1,126 +1,136 @@
 # Data Dictionary
 
-| variable name             | description | comment |
-|---------------------------|-------------|---------|
-| patientunitstayid         |             |         |
-| hst_hr_day1               |             |         |
-| me_hr_day1                |             |         |
-| lest_sys_day1             |             |         |
-| me_sys_day1               |             |         |
-| lest_dia_day1             |             |         |
-| me_dia_day1               |             |         |
-| hst_temp                  |             |         |
-| age_fixed                 |             |         |
-| gender                    |             |         |
-| apacheadmissiondx         |             |         |
-| ethnicity                 |             |         |
-| unitadmitsource           |             |         |
-| weight                    |             |         |
-| height                    |             |         |
-| BMI                       |             |         |
-| BMI_group                 |             |         |
-| unitType                  |             |         |
-| hospitalAdmitSource       |             |         |
-| hospLOS_prior_ICUadm_days |             |         |
-| fio2_first                |             |         |
-| pao2_first                |             |         |
-| paco2_first               |             |         |
-| pH_first                  |             |         |
-| aniongap_first            |             |         |
-| basedeficit_first         |             |         |
-| baseexcess_first          |             |         |
-| peep_first                |             |         |
-| fio2_min_24               |             |         |
-| pao2_min_24               |             |         |
-| paco2_min_24              |             |         |
-| pH_min_24                 |             |         |
-| aniongap_min_24           |             |         |
-| basedeficit_min_24        |             |         |
-| baseexcess_min_24         |             |         |
-| peep_min24                |             |         |
-| fio2_min_48               |             |         |
-| pao2_min_48               |             |         |
-| paco2_min_48              |             |         |
-| pH_min_48                 |             |         |
-| aniongap_min_48           |             |         |
-| basedeficit_min_48        |             |         |
-| baseexcess_min_48         |             |         |
-| peep_min_48               |             |         |
-| fio2_max_24               |             |         |
-| pao2_max_24               |             |         |
-| paco2_max_24              |             |         |
-| pH_max_24                 |             |         |
-| aniongap_max_24           |             |         |
-| basedeficit_max_24        |             |         |
-| baseexcess_max_24         |             |         |
-| peep_max24                |             |         |
-| fio2_max_48               |             |         |
-| pao2_max_48               |             |         |
-| paco2_max_48              |             |         |
-| pH_max_48                 |             |         |
-| aniongap_max_48           |             |         |
-| basedeficit_max_48        |             |         |
-| baseexcess_max_48         |             |         |
-| peep_max_48               |             |         |
-| albumin_first             |             |         |
-| bilirubin_first           |             |         |
-| BUN_first                 |             |         |
-| wbc_first                 |             |         |
-| platelets_first           |             |         |
-| hematocrit_first          |             |         |
-| hemoglobin_first          |             |         |
-| glucose_first             |             |         |
-| glucose_min_24            |             |         |
-| hemoglobin_min_24         |             |         |
-| hematocrit_min_24         |             |         |
-| platelets_min_24          |             |         |
-| BUN_min_24                |             |         |
-| wbc_min_24                |             |         |
-| albumin_min_24            |             |         |
-| bilirubin_min24           |             |         |
-| glucose_min_48            |             |         |
-| hemoglobin_min_48         |             |         |
-| hematocrit_min_48         |             |         |
-| platelets_min_48          |             |         |
-| BUN_min_48                |             |         |
-| wbc_min_48                |             |         |
-| albumin_min_48            |             |         |
-| bilirubin_min_48          |             |         |
-| glucose_max_24            |             |         |
-| hemoglobin_max_24         |             |         |
-| hematocrit_max_24         |             |         |
-| platelets_max_24          |             |         |
-| BUN_max_24                |             |         |
-| wbc_max_24                |             |         |
-| albumin_max_24            |             |         |
-| bilirubin_max24           |             |         |
-| glucose_max_48            |             |         |
-| hemoglobin_max_48         |             |         |
-| hematocrit_max_48         |             |         |
-| platelets_max_48          |             |         |
-| BUN_max_48                |             |         |
-| wbc_max_48                |             |         |
-| albumin_max_48            |             |         |
-| bilirubin_max_48          |             |         |
-| unitlos_days              |             |         |
-| hosplos_days              |             |         |
-| ventdays_days             |             |         |
-| hospitalmortality         |             |         |
-| icumortality              |             |         |
-| pasthistory_chf           |             |         |
-| pasthistory_pvd           |             |         |
-| pasthistory_hypertension  |             |         |
-| pasthistory_copd          |             |         |
-| pasthistory_diabetes      |             |         |
-| cld                       |             |         |
-| pasthistory_malignancy    |             |         |
-| SID_first                 |             |         |
-| SID_min_24                |             |         |
-| SID_max_24                |             |         |
-| SID_min_48                |             |         |
-| SID_max_48                |             |         |
-| urineoutput_total_24      |             |         |
-| urineoutput_total_48      |             |         |
-| mechvent_day01            |             |         |
-| mechvent_day02            |             |         |
-| AKIstage                  |             |         |
+| variable name             | description                                                            | comment |
+|---------------------------|------------------------------------------------------------------------|---------|
+| patientunitstayid         | unique identifier of icu admission                                     |         |
+| hst_hr_day1               | highest heart rate within the first 24 hrs of ICU admission            |         |
+| me_hr_day1                | mean heart rate within the first 24 hrs of ICU admission               |         |
+| lest_sys_day1             | lowest systolic bp within the first 24 hrs of ICU admission            |         |
+| me_sys_day1               | mean systolic bp within the first 24 hrs of ICU admission              |         |
+| lest_dia_day1             | lowest diastolic bp within the first 24 hrs of ICU admission           |         |
+| me_dia_day1               | lowest diastolic bp within the first 24 hrs of ICU admission           |         |
+| hst_temp                  | highest temperature within the first 24 hrs of ICU admission           |         |
+| age_fixed                 | age of the patient                                                     |         |
+| gender                    |                                                                        |         |
+| apacheadmissiondx         | main (apache) diagnosis on admission                                   |         |
+| ethnicity                 |                                                                        |         |
+| unitadmitsource           |                                                                        |         |
+| weight                    |                                                                        |         |
+| height                    |                                                                        |         |
+| BMI                       |                                                                        |         |
+| BMI_group                 |                                                                        |         |
+| unitType                  |                                                                        |         |
+| hospitalAdmitSource       |                                                                        |         |
+| hospLOS_prior_ICUadm_days |                                                                        |         |
+| fio2_first                | first available data 24 hours prior to or 6 hours after ICU admission  |         |
+| pao2_first                | first available data 24 hours prior to or 6 hours after ICU admission  |         |
+| paco2_first               | first available data 24 hours prior to or 6 hours after ICU admission  |         |
+| pH_first                  | first available data 24 hours prior to or 6 hours after ICU admission  |         |
+| aniongap_first            | first available data 24 hours prior to or 6 hours after ICU admission  |         |
+| basedeficit_first         | first available data 24 hours prior to or 6 hours after ICU admission  |         |
+| baseexcess_first          | first available data 24 hours prior to or 6 hours after ICU admission  |         |
+| peep_first                | first available data 24 hours prior to or 6 hours after ICU admission  |         |
+| fio2_min_24               | within the first 24 hours after ICU admission                          |         |
+| pao2_min_24               | within the first 24 hours after ICU admission                          |         |
+| paco2_min_24              | within the first 24 hours after ICU admission                          |         |
+| pH_min_24                 | within the first 24 hours after ICU admission                          |         |
+| aniongap_min_24           | within the first 24 hours after ICU admission                          |         |
+| basedeficit_min_24        | within the first 24 hours after ICU admission                          |         |
+| baseexcess_min_24         | within the first 24 hours after ICU admission                          |         |
+| peep_min24                | within the first 24 hours after ICU admission                          |         |
+| fio2_min_48               | within 48 hours after ICU admission                                    |         |
+| pao2_min_48               | within 48 hours after ICU admission                                    |         |
+| paco2_min_48              | within 48 hours after ICU admission                                    |         |
+| pH_min_48                 | within 48 hours after ICU admission                                    |         |
+| aniongap_min_48           | within 48 hours after ICU admission                                    |         |
+| basedeficit_min_48        | within 48 hours after ICU admission                                    |         |
+| baseexcess_min_48         | within 48 hours after ICU admission                                    |         |
+| peep_min_48               | within 48 hours after ICU admission                                    |         |
+| fio2_max_24               | within the first 24 hours after ICU admission                          |         |
+| pao2_max_24               | within the first 24 hours after ICU admission                          |         |
+| paco2_max_24              | within the first 24 hours after ICU admission                          |         |
+| pH_max_24                 | within the first 24 hours after ICU admission                          |         |
+| aniongap_max_24           | within the first 24 hours after ICU admission                          |         |
+| basedeficit_max_24        | within the first 24 hours after ICU admission                          |         |
+| baseexcess_max_24         | within the first 24 hours after ICU admission                          |         |
+| peep_max24                | within the first 24 hours after ICU admission                          |         |
+| fio2_max_48               | within 48 hours after ICU admission                                    |         |
+| pao2_max_48               | within 48 hours after ICU admission                                    |         |
+| paco2_max_48              | within 48 hours after ICU admission                                    |         |
+| pH_max_48                 | within 48 hours after ICU admission                                    |         |
+| aniongap_max_48           | within 48 hours after ICU admission                                    |         |
+| basedeficit_max_48        | within 48 hours after ICU admission                                    |         |
+| baseexcess_max_48         | within 48 hours after ICU admission                                    |         |
+| peep_max_48               | within 48 hours after ICU admission                                    |         |
+| albumin_first             | first available data 24 hours prior to or 6 hours after ICU admission  |         |
+| bilirubin_first           | first available data 24 hours prior to or 6 hours after ICU admission  |         |
+| BUN_first                 | first available data 24 hours prior to or 6 hours after ICU admission  |         |
+| wbc_first                 | first available data 24 hours prior to or 6 hours after ICU admission  |         |
+| platelets_first           | first available data 24 hours prior to or 6 hours after ICU admission  |         |
+| hematocrit_first          | first available data 24 hours prior to or 6 hours after ICU admission  |         |
+| hemoglobin_first          | first available data 24 hours prior to or 6 hours after ICU admission  |         |
+| glucose_first             | first available data 24 hours prior to or 6 hours after ICU admission  |         |
+| glucose_min_24            | within the first 24 hours after ICU admission                          |         |
+| hemoglobin_min_24         | within the first 24 hours after ICU admission                          |         |
+| hematocrit_min_24         | within the first 24 hours after ICU admission                          |         |
+| platelets_min_24          | within the first 24 hours after ICU admission                          |         |
+| BUN_min_24                | within the first 24 hours after ICU admission                          |         |
+| wbc_min_24                | within the first 24 hours after ICU admission                          |         |
+| albumin_min_24            | within the first 24 hours after ICU admission                          |         |
+| bilirubin_min24           | within the first 24 hours after ICU admission                          |         |
+| glucose_min_48            | within 48 hours after ICU admission                                    |         |
+| hemoglobin_min_48         | within 48 hours after ICU admission                                    |         |
+| hematocrit_min_48         | within 48 hours after ICU admission                                    |         |
+| platelets_min_48          | within 48 hours after ICU admission                                    |         |
+| BUN_min_48                | within 48 hours after ICU admission                                    |         |
+| wbc_min_48                | within 48 hours after ICU admission                                    |         |
+| albumin_min_48            | within 48 hours after ICU admission                                    |         |
+| bilirubin_min_48          | within 48 hours after ICU admission                                    |         |
+| glucose_max_24            | within the first 24 hours after ICU admission                          |         |
+| hemoglobin_max_24         | within the first 24 hours after ICU admission                          |         |
+| hematocrit_max_24         | within the first 24 hours after ICU admission                          |         |
+| platelets_max_24          | within the first 24 hours after ICU admission                          |         |
+| BUN_max_24                | within the first 24 hours after ICU admission                          |         |
+| wbc_max_24                | within the first 24 hours after ICU admission                          |         |
+| albumin_max_24            | within the first 24 hours after ICU admission                          |         |
+| bilirubin_max24           | within the first 24 hours after ICU admission                          |         |
+| glucose_max_48            | within 48 hours after ICU admission                                    |         |
+| hemoglobin_max_48         | within 48 hours after ICU admission                                    |         |
+| hematocrit_max_48         | within 48 hours after ICU admission                                    |         |
+| platelets_max_48          | within 48 hours after ICU admission                                    |         |
+| BUN_max_48                | within 48 hours after ICU admission                                    |         |
+| wbc_max_48                | within 48 hours after ICU admission                                    |         |
+| albumin_max_48            | within 48 hours after ICU admission                                    |         |
+| bilirubin_max_48          | within 48 hours after ICU admission                                    |         |
+| unitlos_days              | ICU length of stay                                                     |         |
+| hosplos_days              | hospital length of stay                                                |         |
+| ventdays_days             | days in mechanical ventilation                                         |         |
+| hospitalmortality         |                                                                        |         |
+| icumortality              |                                                                        |         |
+| pasthistory_chf           | past history of congestive heart failure                               |         |
+| pasthistory_pvd           | past history of peripheral vascular disease                            |         |
+| pasthistory_hypertension  | past history of                                                        |         |
+| pasthistory_copd          | past history of chronic pulmonary disease                              |         |
+| pasthistory_diabetes      | past history of                                                        |         |
+| pasthistory_cld           | past history of chronic liver disease                                  |         |
+| pasthistory_malignancy    |                                                                        |         |
+| sodium_first              | first available data 24 hours prior to or 6 hours after ICU admission  |         |
+| chloride_first            | first available data 24 hours prior to or 6 hours after ICU admission  |         |
+| SID_first                 | first available data 24 hours prior to or 6 hours after ICU admission  |         |
+| sodium_min_24             | within the first 24 hours after ICU admission                          |         |
+| chloride_min_24           | within the first 24 hours after ICU admission                          |         |
+| sodium_min_48             | within 48 hours after ICU admission                                    |         |
+| chloride_min_48           | within 48 hours after ICU admission                                    |         |
+| sodium_max_24             | within the first 24 hours after ICU admission                          |         |
+| chloride_max_24           | within the first 24 hours after ICU admission                          |         |
+| sodium_max_48             | within 48 hours after ICU admission                                    |         |
+| chloride_max_48           | within 48 hours after ICU admission                                    |         |
+| SID_min_24                | within the first 24 hours after ICU admission                          |         |
+| SID_max_24                | within the first 24 hours after ICU admission                          |         |
+| SID_min_48                | within 48 hours after ICU admission                                    |         |
+| SID_max_48                | within 48 hours after ICU admission                                    |         |
+| urineoutput_total_24      | within the first 24 hours after ICU admission                          |         |
+| urineoutput_total_48      | within 48 hours after ICU admission                                    |         |
+| mechvent_day01            | whether the patient was mechanically ventilated day 1 of ICU admission |         |
+| mechvent_day02            | whether the patient was mechanically ventilated day 2 of ICU admission |         |
+| AKIstage                  |                                                                        |         |

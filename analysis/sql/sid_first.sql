@@ -1,5 +1,6 @@
+-- sodium and chloride first available data 24 hours prior to or 6 hours after ICU admission
 -- difference between sodium ion and chloride ion = strong ion difference (SID)
--- first available data 24 hours prior to, or 6 hours after, ICU admission
+-- first available data 24 hours prior to or 6 hours after ICU admission
 WITH
   all_data AS (
   SELECT
@@ -28,10 +29,9 @@ WITH
     labresultoffset)
 SELECT
   patientunitstayid,
+  sodium_first,
+  chloride_first,
   sodium_first - chloride_first AS SID_first
 FROM
   aggregated_data
-WHERE rn = 1  
-ORDER BY
-  patientunitstayid,
-  labresultoffset
+WHERE rn = 1

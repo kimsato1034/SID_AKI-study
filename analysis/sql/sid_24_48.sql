@@ -1,3 +1,4 @@
+-- sodium and chloride
 -- difference between sodium ion and chloride ion = strong ion difference (SID)
 -- Maximum value, minimum value for 24 hours after ICU admission.
 -- Maximum value, minimum value for 48 hours after ICU admission.
@@ -36,6 +37,14 @@ GROUP BY
 patientunitstayid    
 )SELECT
     patientunitstayid
+  , sodium_min_24
+  , chloride_min_24
+  , sodium_min_48
+  , chloride_min_48
+  , sodium_max_24
+  , chloride_max_24
+  , sodium_max_48
+  , chloride_max_48  
   , sodium_min_24 - chloride_min_24 AS SID_min_24
   , sodium_max_24 - chloride_max_24 AS SID_max_24
   , sodium_min_48 - chloride_min_48 AS SID_min_48

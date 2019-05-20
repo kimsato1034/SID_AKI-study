@@ -1,4 +1,3 @@
-
   -- It tells whether the patient was mechanically ventilated each day for the first 2 days of ICU admission.
   -- this query gets the data from respiratorycare (any invasive airway),
   -- respiratorycharting and treatment (either ETT/NiV) to tell whether
