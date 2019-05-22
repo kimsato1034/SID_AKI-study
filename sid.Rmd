@@ -1,0 +1,224 @@
+---
+title: "Untitled"
+author: "Satoshi"
+date: "5/18/2019"
+output: html_document
+---
+
+```{r,message=F,warning=F}
+library(dplyr)
+library(MASS)
+library(ggplot2)
+library(pROC)
+library(ROCR)
+library(tableone)
+library(glmnet)
+library(caret)
+library(leaps)
+library(tree)
+library(randomForest)
+library(rpart)
+library(rattle)
+library(rpart.plot)
+library(RColorBrewer)
+library(gbm)
+library(e1071)
+library(ROCR) 
+library(tableone)
+library(splines)
+library(gam)
+library(mgcv)
+```
+
+#Data wrangling
+```{r,results='hide'}
+df<-read.csv("sid_aki_study.csv",header=T)
+
+df_1<-df%>%filter(!is.na(AKIstage))%>%mutate(aki=case_when(.$AKIstage==0~0,.$AKIstage%in%c(1,2,3)~1))%>%
+  mutate(gender=case_when(.$gender=="Female"~0,
+                          .$gender=="Male"~1,
+                          TRUE~as.numeric(NA)))
+
+df_1$ethnicity[df_1$ethnicity ==""| 
+             df_1$ethnicity == "Native American"|
+             df_1$ethnicity == "Other/Unknow"] <- "Other/Unknown"
+
+summary(df_1$gender)
+head(df_1)
+class(df_1)
+
+df_2<-df_1%>%mutate(cl_adm_cat=case_when(.$chloride_first<98 ~ 1,
+                              .$chloride_first>=98 & .$chloride_first<=110 ~ 0,
+                              .$chloride_first>110 ~ 2,
+                                TRUE ~ as.numeric(NA)),
+         na_adm_cat=case_when(.$sodium_first>145 ~ 2,
+                                .$sodium_first<=145  & .$sodium_first>=135 ~ 0,
+                                .$sodium_first<135 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         sid_adm_cat=case_when(.$SID_first>35 ~ 2,
+                                .$SID_first<=35  & .$SID_first>=30 ~ 0,
+                                .$SID_first<30 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         cl_24_min_cat=case_when(.$chloride_min_24<98 ~ 1,
+                              .$chloride_min_24>=98 & .$chloride_min_24<=110 ~ 0,
+                              .$chloride_min_24>110 ~ 2,
+                                TRUE ~ as.numeric(NA)),
+         cl_24_max_cat=case_when(.$chloride_max_24>145 ~ 2,
+                                .$chloride_max_24<=145  & .$chloride_max_24>=135 ~ 0,
+                                .$chloride_max_24<135 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         na_24_min_cat=case_when(.$sodium_min_24<98 ~ 1,
+                              .$sodium_min_24>=98 & .$sodium_min_24<=110 ~ 0,
+                              .$sodium_min_24>110 ~ 2,
+                                TRUE ~ as.numeric(NA)),
+         na_24_max_cat=case_when(.$sodium_max_24>145 ~ 2,
+                                .$sodium_max_24<=145  & .$sodium_max_24>=135 ~ 0,
+                                .$sodium_max_24<135 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         sid_24_min_cat=case_when(.$SID_min_24>35 ~ 2,
+                                .$SID_min_24<=35  & .$SID_min_24>=30 ~ 0,
+                                .$SID_min_24<30 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         sid_24_max_cat=case_when(.$SID_max_24>35 ~ 2,
+                                .$SID_max_24<=35  & .$SID_max_24>=30 ~ 0,
+                                .$SID_max_24<30 ~ 1,
+                                TRUE ~ as.numeric(NA)))%>%
+   mutate_at(c("gender","pasthistory_chf","pasthistory_pvd","pasthistory_hypertension","pasthistory_copd","pasthistory_diabetes","cl_adm_cat","na_adm_cat","sid_adm_cat","cl_24_min_cat","cl_24_max_cat","na_24_min_cat","na_24_max_cat","sid_24_min_cat","sid_24_max_cat","ethnicity"),as.factor)
+
+
+df_2%>%ggplot()+
+  geom_histogram(aes(hospLOS_prior_ICUadm_days),binwidth = 1)
+
+```
+
+#Admission
+```{r}
+#table one
+CreateTableOne(vars=c("gender","age_fixed","weight","pao2_first","paco2_first","pH_first","baseexcess_first","albumin_first","bilirubin_first","BUN_first","wbc_first","platelets_first","hematocrit_first","hemoglobin_first","glucose_first","pasthistory_chf","pasthistory_pvd","pasthistory_hypertension","pasthistory_copd","pasthistory_diabetes","sodium_first","chloride_first","SID_first"),strata="aki",data=df_1)
+
+#Distribution
+#Time-weighted mean chloride
+df_1%>%ggplot()+
+  geom_histogram(aes(chloride_first),binwidth = 1)
+#Time-weighted mean sodium
+df_1%>%ggplot()+
+  geom_histogram(aes(sodium_first),binwidth = 1)
+#Time-weighted mean (Na-Cl)
+df_1%>%ggplot()+
+  geom_histogram(aes(SID_first),binwidth = 1)
+```
+
+
+
+```{r}
+#Log linear
+glm(aki~cl_adm_cat+na_adm_cat+sid_adm_cat,data=df_2,family="binomial")%>%summary()
+
+model_null<-glm(aki~cl_adm_cat+na_adm_cat+sid_adm_cat,data=df_2,family="binomial")
+model<-glm(aki~cl_adm_cat+na_adm_cat+sid_adm_cat+
+      gender+age_fixed+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+ethnicity,data=df_2,family="binomial")
+summary(model)
+exp(cbind(OR=coef(model), confint.default(model)))
+
+#Backward selection
+step(model,scope=list(lower=~cl_adm_cat+na_adm_cat+sid_adm_cat,upper=model),direction="backward",k=2)
+
+#remove pasthistory_chf
+model<-glm(aki~cl_adm_cat+na_adm_cat+sid_adm_cat+
+      gender+age_fixed+pasthistory_chf+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+ethnicity,data=df_2,family="binomial")
+summary(model)
+exp(cbind(OR=coef(model), confint.default(model)))
+
+
+#Spline
+#chloride
+gam<-gam(aki~s(chloride_first,bs="tp",k=10),data=df_1,family="binomial")
+plot(gam)
+#sodium
+gam<-gam(aki~s(sodium_first,bs="tp",k=10),data=df_1,family="binomial")
+plot(gam)
+#Na-Cl
+gam<-gam(aki~s(SID_first,bs="tp",k=10),data=df_1,family="binomial")
+plot(gam)
+
+#Cl vs. Na
+gam<-gam(aki~s(chloride_first,sodium_first,bs="tp",k=10),data=df_1,family="binomial")
+plot(gam)
+
+#Main predictors
+gam<-gam(aki~s(chloride_first,bs="tp",k=10)+s(sodium_first,bs="tp",k=10)+s(SID_first,bs="tp",k=10)+
+           gender+age_fixed+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+ethnicity,data=df_2,family="binomial")
+summary(gam)
+
+#Main predictors
+gam<-gam(aki~s(chloride_first,bs="tp",k=10)+s(sodium_first,bs="tp",k=10)+s(SID_first,bs="tp",k=10)+s(paco2_first,bs="tp",k=10)+s(wbc_first,bs="tp",k=10)+s(platelets_first,bs="tp",k=10)+s(hemoglobin_first,bs="tp",k=10)+glucose_first+albumin_first+
+           gender+age_fixed+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+ethnicity,data=df_2,family="binomial")
+summary(gam)
+
+#More covariates
+model<-gam(aki~s(chloride_first,bs="tp",k=10)+s(sodium_first,bs="tp",k=10)+s(SID_first,bs="tp",k=10)+s(pao2_first,bs="tp",k=10)+s(paco2_first,bs="tp",k=10)+s(pH_first,bs="tp",k=10)+s(baseexcess_first,bs="tp",k=10)+s(albumin_first,bs="tp",k=10)+s(wbc_first,bs="tp",k=10)+s(platelets_first,bs="tp",k=10)+s(hemoglobin_first,bs="tp",k=10)+s(glucose_first,bs="tp",k=10)+
+      gender+age_fixed+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+ethnicity,data=df_2,family="binomial")
+summary(model)
+
+#How to diagnose colinear relationship??
+
+#cannot variable selection?
+
+```
+
+
+
+#Using data within 24 hours
+
+```{r}
+glm(aki~cl_24_min_cat+na_24_min_cat+sid_24_min_cat+cl_24_max_cat+na_24_max_cat+sid_24_max_cat,data=df_2,family="binomial")%>%summary() #could be protective for cl_24_min_cat=2, thus, no sense for this model. We should use time_weighted mean.
+```
+
+
+
+##Data wrangling and creating training and test set
+```{r}
+#Exclude chronic kidney dysfunction and high Cre ad admission
+df_48<-df_me%>%dplyr::select(gender,admission_age,admcl,admna,admbe,admcre,CHF,HTN,DM,Liver,Malig,aki_7day,admsid_new,basecre,lowcl48hr,highcl48hr,lowna48hr,highna48hr,lowsid48hr,highsid48hr,twcl,twna,twsid)%>%filter(admcre<basecre*1.5 | admcre<basecre+0.3)%>%
+  filter(admcre<=3)%>%dplyr::select(-basecre)
+
+as_tibble(df_48)
+
+# Potential predictors
+head(df_48)
+
+# Creating training set and test set
+set.seed(123)
+train=sample(c(TRUE,FALSE), nrow(df_48),rep=TRUE)	
+test=(!train)
+x_train=model.matrix(aki_7day~.,df_48[train,])[,-1]
+y_train=df_48[train,]$aki_7day
+x_test=model.matrix(aki_7day~.,df_48[test,])[,-1]
+y_test=df_48[test,]$aki_7day
+```
+
+
+#Decision tree
+```{r}
+tree<-rpart(as.factor(aki_7day)~twcl+twna+twsid+gender+admission_age+CHF+HTN+DM+Liver+Malig,data=df_48,control=rpart.control(minsplit=10, cp=0.003))
+printcp(tree)
+plotcp(tree)
+prune(tree, cp=tree$cptable[which.min(tree$cptable[,"xerror"]),"CP"])
+plot(tree, uniform=TRUE, main="Classification Tree")
+text(tree, use.n=TRUE, all=TRUE, cex=.5)
+
+```
+
+#RF
+```{r}
+control <- trainControl(method='repeatedcv',number=10, repeats=1,search="grid")
+metric <- "Accuracy"
+tunegrid <- expand.grid(mtry=(1:6))
+rf<- train(as.factor(aki_7day)~twcl+twna+twsid+gender+admission_age+CHF+HTN+DM+Liver+Malig, data=df_48,method='rf', metric='Accuracy',tuneGrid=tunegrid, trControl=control)
+print(rf)
+plot(rf)
+varImp(rf)
+```
+
+
+
