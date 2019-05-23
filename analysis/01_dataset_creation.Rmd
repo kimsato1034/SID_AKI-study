@@ -81,6 +81,7 @@ outcomes<-run_query(getSQL("sql/outcomes.sql"))
 pasthistory<-run_query(getSQL("sql/pasthistory.sql"))
 sid_24_48<-run_query(getSQL("sql/sid_24_48.sql"))
 sid_first<-run_query(getSQL("sql/sid_first.sql"))
+sid_twa_24<-run_query(getSQL("sql/sid_twa_24.sql"))
 temp_day1<-run_query(getSQL("sql/temp_day1.sql"))
 temp_day2<-run_query(getSQL("sql/temp_day2.sql"))
 urine_output_24_48<-run_query(getSQL("sql/urine_output_24_48.sql"))
@@ -237,12 +238,18 @@ sid_aki_study<-Reduce(function(...) merge(..., all.x=TRUE), list(
 , pasthistory
 , sid_first
 , sid_24_48
+, sid_twa_24
 , temp_day1
 , temp_day2
 , urine_output_24_48
 , vent_bin_first_2days
 , vitals_day1
 , vitals_day2
+, baseline_creat
+, chronicAKI
+, first_rrt
+, peakcreat48h
+, peakcreat7days
 , AKIlist_final
 ))
 

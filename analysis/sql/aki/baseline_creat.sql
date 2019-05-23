@@ -1,7 +1,6 @@
 -- ------------------------------------------------------------------
 -- Title: Patients first creatinine available value between -12 and +12h from admission 
--- Notes: cap_leak_index/analysis/sql/aki/baseline_creat.sql 
---        cap_leak_index, 20190511 NYU Datathon
+-- Notes: SID_aki-study
 --        eICU Collaborative Research Database v2.0.
 -- ------------------------------------------------------------------
 WITH tempo AS
@@ -12,7 +11,7 @@ WITH tempo AS
            ROW_NUMBER() OVER (PARTITION BY patientunitstayid, labname ORDER BY labresultoffset ASC) AS POSITION
    FROM `physionet-data.eicu_crd.lab`
    WHERE ((labname) = 'creatinine')
-     AND labresultoffset BETWEEN -720 AND 720 -- first creat available value between -12 and +12h from admission 
+     AND labresultoffset BETWEEN -902460 AND 0 -- first creat available value between 3 months before ICU admission and time 0 of ICU admission (ICU admission itself)
      ORDER BY patientunitstayid, labresultoffset )
 SELECT patientunitstayid,
        max(CASE WHEN (labname) = 'creatinine' AND POSITION =1 THEN labresult ELSE NULL END) AS creat1,
@@ -20,4 +19,3 @@ SELECT patientunitstayid,
 FROM tempo
 GROUP BY patientunitstayid
 ORDER BY patientunitstayid
-
