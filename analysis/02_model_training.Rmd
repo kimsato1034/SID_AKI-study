@@ -6,28 +6,28 @@ output: html_document
 ---
 
 ```{r,message=F,warning=F}
-library(dplyr)
-library(MASS)
-library(ggplot2)
-library(pROC)
-library(ROCR)
-library(tableone)
-library(glmnet)
-library(caret)
-library(leaps)
-library(tree)
-library(randomForest)
-library(rpart)
-library(rattle)
-library(rpart.plot)
-library(RColorBrewer)
-library(gbm)
-library(e1071)
-library(ROCR) 
-library(tableone)
-library(splines)
-library(gam)
-library(mgcv)
+require(dplyr)
+require(MASS)
+require(ggplot2)
+require(pROC)
+require(ROCR)
+require(tableone)
+require(glmnet)
+require(caret)
+require(leaps)
+require(tree)
+require(randomForest)
+require(rpart)
+require(rattle)
+require(rpart.plot)
+require(RColorBrewer)
+require(gbm)
+require(e1071)
+require(ROCR) 
+require(tableone)
+require(splines)
+require(gam)
+require(mgcv)
 ```
 
 Let me explain again the purpose of this study simply.
@@ -41,12 +41,14 @@ Second, some of the studies only used logistic regression, which assumes a linea
 In this study, we would like to assess associations between AKI and chloride, sodium and SID using ML technique. If possible, we want to compare which variable, among chloride, sodium and SID, is the most importantly and strongly associated with AKI.
 
 
-#Data wrangling
+# Data wrangling
+
 ```{r,results='hide'}
-df<-read.csv("sid_aki_study.csv",header=T)
+df<-sid_aki_study
 
 #For outcomes/predictors with substantial missig data, IPW should be used?
 #Exclude CKD, rrt before admision
+
 df_1<-df%>%filter(creat1<=3)%>%mutate(aki=case_when(.$AKIstage==0~0,.$AKIstage%in%c(1,2,3)~1))%>%
   mutate(gender=case_when(.$gender=="Female"~0,
                           .$gender=="Male"~1,
@@ -136,7 +138,8 @@ df_me<-df_2%>%filter(surgery==0)
 As the primary outcome, we would like to focus on AKI.
 We have mainly two types of variables based on the phase: 1) variables at admission, 2) variables for the first 24 hours. Analyses were conducted based on the phase as follows.
 
-#Variables at admission
+# Variables at admission
+
 ```{r}
 #Wrangling
 df_adm<-df_me%>%filter(!is.na(chloride_first),!is.na(sodium_first),!is.na(SID_first),!is.na(aki))
@@ -171,14 +174,14 @@ plot(gam)
 As we can see, the association between those variables and AKI is non-linear (maybe U-shape). Thus, using Cl, Na, and SID as continuous variables in logistic regression is wrong. One solution is using Cl, Na, and SID as categorical variables.
 
 ```{r}
-#Analysis using categorical Cl, Na, and SID
-#Logistic regression 
+# Analysis using categorical Cl, Na, and SID
+# Logistic regression 
 model<-glm(aki~cl_adm_cat+na_adm_cat+sid_adm_cat+
       gender+age_fixed+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+ethnicity+creat1,data=df_adm,family="binomial")
 summary(model)
 exp(cbind(OR=coef(model), confint.default(model)))
 
-#With lab data
+# With lab data
 model<-glm(aki~cl_adm_cat+na_adm_cat+sid_adm_cat+
       gender+age_fixed+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+ethnicity+creat1+
         albumin_first+hemoglobin_first+glucose_first,data=df_adm,family="binomial")
@@ -192,6 +195,25 @@ In this model, only high SID is associated with AKI.
 
 Another way is using other ML methods such as spline and tree. However, I am not good at those methods.
 I would appreciate it if you could give me some advice and correct the following codes.
+
+## Quartiles Study
+
+Analysis using quartiles of Cl, Na, and SID on admission
+
+```{r}
+# Logistic regression 
+
+
+# With lab data
+model<-glm(aki ~ 	cut(chloride_first,breaks = 4,labels = c('1','2','3','4')) 
+                + cut(sodium_first,breaks = 4,labels = c('1','2','3','4'))
+                + cut(SID_first,breaks = 4,labels = c('1','2','3','4'))
+      +gender+age_fixed+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+ethnicity+creat1
+      +albumin_first+hemoglobin_first+glucose_first,data=df_adm,family="binomial")
+round(exp(cbind(OR=coef(model), confint.default(model))),2)
+
+```
+
 
 ```{r}
 #Analysis using continuous Cl, Na, and SID
@@ -213,7 +235,7 @@ summary(model)
 #How to diagnose colinear relationship??
 ```
 
-#Variables for the first 24 hours
+# Variables for the first 24 hours
 Using variables in the first 24 hours, I did the same analyses as above. 
 ```{r}
 #Wrangling
