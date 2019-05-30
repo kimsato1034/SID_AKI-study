@@ -225,6 +225,25 @@ In this model, only high SID is associated with AKI.
 Another way is using other ML methods such as spline and tree. However, I am not good at those methods.
 I would appreciate it if you could give me some advice and correct the following codes.
 
+## Quartiles Study
+
+Analysis using quartiles of Cl, Na, and SID on admission
+
+```{r}
+# Logistic regression 
+
+
+# With lab data
+model<-glm(aki ~ 	cut(chloride_first,breaks = 4,labels = c('1','2','3','4')) 
+                + cut(sodium_first,breaks = 4,labels = c('1','2','3','4'))
+                + cut(SID_first,breaks = 4,labels = c('1','2','3','4'))
+      +gender+age_fixed+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+ethnicity+creat1
+      +albumin_first+hemoglobin_first+glucose_first,data=df_adm,family="binomial")
+round(exp(cbind(OR=coef(model), confint.default(model))),2)
+
+```
+
+
 ```{r}
 #Analysis using continuous Cl, Na, and SID
 #Spline 
