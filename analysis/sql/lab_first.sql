@@ -1,5 +1,5 @@
 -- This query extracts Lab analysis data 
--- At admission (the first available data 24 hours prior to, or 6 hours after, ICU admission)  
+-- At admission (the first available data 24 hours prior to, or 24 hours after, ICU admission)  
 
 WITH unique_icustays AS(
 SELECT
@@ -11,56 +11,56 @@ SELECT
 , albumin AS albumin_first
 ,ROW_NUMBER() OVER (PARTITION BY patientunitstayid ORDER BY chartoffset ASC) AS rn
 FROM `physionet-data.eicu_crd_derived.pivoted_lab` 
-WHERE chartoffset BETWEEN -6*24 AND 6*60  
+WHERE chartoffset BETWEEN -6*24 AND 24*60  
 ), bilirubin_first_sq AS(
 SELECT
   patientunitstayid
 , bilirubin AS bilirubin_first
 ,ROW_NUMBER() OVER (PARTITION BY patientunitstayid ORDER BY chartoffset ASC) AS rn
 FROM `physionet-data.eicu_crd_derived.pivoted_lab` 
-WHERE chartoffset BETWEEN -6*24 AND 6*60  
+WHERE chartoffset BETWEEN -6*24 AND 24*60  
 ),BUN_first_sq AS(
 SELECT
   patientunitstayid
 , BUN AS BUN_first
 ,ROW_NUMBER() OVER (PARTITION BY patientunitstayid ORDER BY chartoffset ASC) AS rn
 FROM `physionet-data.eicu_crd_derived.pivoted_lab` 
-WHERE chartoffset BETWEEN -6*24 AND 6*60  
+WHERE chartoffset BETWEEN -6*24 AND 24*60  
 ), wbc_first_sq AS(
 SELECT
   patientunitstayid
 , wbc AS wbc_first
 ,ROW_NUMBER() OVER (PARTITION BY patientunitstayid ORDER BY chartoffset ASC) AS rn
 FROM `physionet-data.eicu_crd_derived.pivoted_lab` 
-WHERE chartoffset BETWEEN -6*24 AND 6*60  
+WHERE chartoffset BETWEEN -6*24 AND 24*60  
 ), platelets_first_sq AS(
 SELECT
   patientunitstayid
 , platelets AS platelets_first
 ,ROW_NUMBER() OVER (PARTITION BY patientunitstayid ORDER BY chartoffset ASC) AS rn
 FROM `physionet-data.eicu_crd_derived.pivoted_lab` 
-WHERE chartoffset BETWEEN -6*24 AND 6*60  
+WHERE chartoffset BETWEEN -6*24 AND 24*60  
 ), hematocrit_first_sq AS(
 SELECT
   patientunitstayid
 , hematocrit AS hematocrit_first
 ,ROW_NUMBER() OVER (PARTITION BY patientunitstayid ORDER BY chartoffset ASC) AS rn
 FROM `physionet-data.eicu_crd_derived.pivoted_lab` 
-WHERE chartoffset BETWEEN -6*24 AND 6*60  
+WHERE chartoffset BETWEEN -6*24 AND 24*60  
 ), baseexcees_first_sq AS(
 SELECT
   patientunitstayid
 , hemoglobin AS hemoglobin_first
 ,ROW_NUMBER() OVER (PARTITION BY patientunitstayid ORDER BY chartoffset ASC) AS rn
 FROM `physionet-data.eicu_crd_derived.pivoted_lab` 
-WHERE chartoffset BETWEEN -6*24 AND 6*60  
+WHERE chartoffset BETWEEN -6*24 AND 24*60  
 ), glucose_first_sq AS(
 SELECT
   patientunitstayid
 , glucose AS glucose_first
 ,ROW_NUMBER() OVER (PARTITION BY patientunitstayid ORDER BY chartoffset ASC) AS rn
 FROM `physionet-data.eicu_crd_derived.pivoted_lab` 
-WHERE chartoffset BETWEEN -6*24 AND 6*60  
+WHERE chartoffset BETWEEN -6*24 AND 24*60  
 )
 SELECT patientunitstayid
 ,albumin_first

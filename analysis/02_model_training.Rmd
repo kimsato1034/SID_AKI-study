@@ -236,7 +236,9 @@ summary(model)
 ```
 
 # Variables for the first 24 hours
+
 Using variables in the first 24 hours, I did the same analyses as above. 
+
 ```{r}
 #Wrangling
 df_24h<-df_me%>%filter(!is.na(chloride_twa_24),!is.na(sodium_twa_24),!is.na(SID_twa_24),!is.na(aki))
@@ -298,7 +300,7 @@ y_test=df_24h_1[test,]$aki
 ```
 
 
-#Decision tree
+# Decision tree
 ```{r}
 tree<-rpart(as.factor(aki)~.,data=df_24h_1,control=rpart.control(minsplit=10, cp=0.0005))
 printcp(tree)
@@ -309,7 +311,7 @@ prune(tree, cp=tree$cptable[which.min(tree$cptable[,"xerror"]),"CP"])
 #varImp(tree)
 ```
 
-#RF
+# RF
 ```{r,eval=F}
 control <- trainControl(method='repeatedcv',number=10, repeats=1,search="grid")
 metric <- "Accuracy"
@@ -321,7 +323,7 @@ varImp(rf)
 ```
 
 
-#Mortality
+# Mortality
 After finishing analyses for AKI, we can expand secondary outcomes as mortality.
 
 ```{r}
