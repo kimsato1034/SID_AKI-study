@@ -1,5 +1,5 @@
 -- ------------------------------------------------------------------
--- Title: Patients first creatinine available value between -12 and +12h from admission 
+-- Title: Patients first creatinine available value between 3 months before ICU admission and time 0 of ICU admission (ICU admission itself)
 -- Notes: SID_aki-study
 --        eICU Collaborative Research Database v2.0.
 -- ------------------------------------------------------------------
