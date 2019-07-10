@@ -80,7 +80,7 @@ lab_first<-run_query(getSQL("sql/lab_first.sql"))
 outcomes<-run_query(getSQL("sql/outcomes.sql"))
 pasthistory<-run_query(getSQL("sql/pasthistory.sql"))
 sid_24_48<-run_query(getSQL("sql/sid_24_48.sql"))
- sid_twa_24<-run_query(getSQL("sql/sid_twa_24.sql"))
+sid_twa_24<-run_query(getSQL("sql/sid_twa_24.sql"))
 temp_day1<-run_query(getSQL("sql/temp_day1.sql"))
 temp_day2<-run_query(getSQL("sql/temp_day2.sql"))
 urine_output_24_48<-run_query(getSQL("sql/urine_output_24_48.sql"))
@@ -221,6 +221,13 @@ AKIlist_final[is.na(AKIlist_final)]<-0
 AKIlist_final$rrt_bin<-NULL
 ```
 
+# New Variables
+
+```{r}
+admission_vars<-run_query(getSQL("sql/admission_vars.sql"))
+mean_first_day<-run_query(getSQL("sql/mean_first_day.sql"))
+```
+
 # Merging all datasets
 
 We are using a left join to join them
@@ -250,6 +257,8 @@ sid_aki_study<-Reduce(function(...) merge(..., all.x=TRUE), list(
 , peakcreat48h
 , peakcreat7days
 , AKIlist_final
+, admission_vars
+, mean_first_day
 ))
 
 cat(names(sid_aki_study),sep = '\n')
@@ -264,43 +273,8 @@ view(dfSummary(sid_aki_study))
 # Export dataset
 
 ```{r}
-write.csv(sid_aki_study,'sid_aki_study.csv',row.names = F)
+#write.csv(sid_aki_study,'sid_aki_study.csv',row.names = F)
 ```
 
 
-# New Variables
-
-## Data extraction from BigQuery
-
-```{r}
-admission_vars<-run_query(getSQL("sql/new_variables/admission_vars.sql"))
-mean_first_day<-run_query(getSQL("sql/new_variables/mean_first_day.sql"))
-
-```
-
-
-
-## Merging all datasets
-
-We are using a left join to join them
-
-```{r}
-# left join = all.x=TRUE
-new_variables<-Reduce(function(...) merge(..., all.x=TRUE), list(
-  admission_vars
-, mean_first_day
-))
-```
-
-## Dataset report
-
-```{r}
-view(dfSummary(new_variables))
-```
-
-## Export dataset
-
-```{r}
-write.csv(new_variables,'new_variables.csv',row.names = F)
-```
 

@@ -1,0 +1,151 @@
+---
+title: "02"
+output: html_document
+---
+
+```{r}
+library(dplyr)
+```
+
+
+````{r,results='hide'}
+#For outcomes/predictors with substantial missig data, IPW should be used?
+#Exclude CKD, rrt before admision
+df_1<-sid_aki_study%>%
+  filter(creat1<=3)%>%
+  mutate(aki=case_when(.$AKIstage==0~0,.$AKIstage%in%c(1,2,3)~1))%>%
+  mutate(gender=case_when(.$gender=="Female"~0,
+                          .$gender=="Male"~1,
+                          TRUE~as.numeric(NA)),
+         pre_rrt=case_when(.$rrt_bin==1&first_rrtoffset<=0~1,
+                          TRUE~0))%>%filter(pre_rrt==0)
+
+df_1$ethnicity[df_1$ethnicity ==""| 
+             df_1$ethnicity == "Native American"|
+             df_1$ethnicity == "Other/Unknow"] <- "Other/Unknown"
+
+df_1$surgery<-NA
+df_1$surgery[df_1$hospitalAdmitSource =="Operating Room"| 
+             df_1$hospitalAdmitSource == "PACU"] <- 1
+df_1$surgery[df_1$hospitalAdmitSource =="Acute Care/Floor"| 
+             df_1$hospitalAdmitSource == "Chest Pain Center"|
+             df_1$hospitalAdmitSource == "Direct Admit"|
+               df_1$hospitalAdmitSource == "Emergency Department"|
+               df_1$hospitalAdmitSource == "Floor"|
+               df_1$hospitalAdmitSource == "ICU"|
+               df_1$hospitalAdmitSource == "ICU to SDU"|
+               df_1$hospitalAdmitSource == "Observation"|
+               df_1$hospitalAdmitSource == "Other"|
+               df_1$hospitalAdmitSource == "Other Hospital"|
+               df_1$hospitalAdmitSource == "Other ICU"|
+               df_1$hospitalAdmitSource == "Recovery Room"|
+               df_1$hospitalAdmitSource == "Step-Down Unit (SDU)"] <- 0
+
+#Categorizing Na, Cl, and SID
+df_2<-df_1%>%mutate(cl_adm_cat=case_when(.$chloride_first<98 ~ 1,
+                              .$chloride_first>=98 & .$chloride_first<=110 ~ 0,
+                              .$chloride_first>110 ~ 2,
+                                TRUE ~ as.numeric(NA)),
+         na_adm_cat=case_when(.$sodium_first>145 ~ 2,
+                                .$sodium_first<=145  & .$sodium_first>=135 ~ 0,
+                                .$sodium_first<135 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         sid_adm_cat=case_when(.$SID_first>37 ~ 2,
+                                .$SID_first<=37  & .$SID_first>=31 ~ 0,
+                                .$SID_first<31 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         cl_24_min_cat=case_when(.$chloride_min_24<98 ~ 1,
+                              .$chloride_min_24>=98 & .$chloride_min_24<=110 ~ 0,
+                              .$chloride_min_24>110 ~ 2,
+                                TRUE ~ as.numeric(NA)),
+         cl_24_max_cat=case_when(.$chloride_max_24<98 ~ 1,
+                              .$chloride_max_24>=98 & .$chloride_max_24<=110 ~ 0,
+                              .$chloride_max_24>110 ~ 2,
+                                TRUE ~ as.numeric(NA)),
+         na_24_min_cat=case_when(.$sodium_min_24>145 ~ 2,
+                                .$sodium_min_24<=145  & .$sodium_min_24>=135 ~ 0,
+                                .$sodium_min_24<135 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         na_24_max_cat=case_when(.$sodium_max_24>145 ~ 2,
+                                .$sodium_max_24<=145  & .$sodium_max_24>=135 ~ 0,
+                                .$sodium_max_24<135 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         sid_24_min_cat=case_when(.$SID_min_24>37 ~ 2,
+                                .$SID_min_24<=37  & .$SID_min_24>=31 ~ 0,
+                                .$SID_min_24<3 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         sid_24_max_cat=case_when(.$SID_max_24>37 ~ 2,
+                                .$SID_max_24<=37  & .$SID_max_24>=31 ~ 0,
+                                .$SID_max_24<31 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         cl_24_mean_cat=case_when(.$chloride_twa_24<98 ~ 1,
+                              .$chloride_twa_24>=98 & .$chloride_twa_24<=110 ~ 0,
+                              .$chloride_twa_24>110 ~ 2,
+                                TRUE ~ as.numeric(NA)),
+         cl_24_mean_catd=case_when(.$chloride_twa_24>116 ~ 13,
+                                   .$chloride_twa_24>114&.$chloride_twa_24<=116 ~ 12,
+                                   .$chloride_twa_24>112&.$chloride_twa_24<=114 ~ 11,
+                                   .$chloride_twa_24>110&.$chloride_twa_24<=112 ~ 10,
+                                   .$chloride_twa_24>108&.$chloride_twa_24<=110 ~ 9,
+                                   .$chloride_twa_24>106&.$chloride_twa_24<=108 ~ 8,
+                                   .$chloride_twa_24>104&.$chloride_twa_24<=106 ~ 7,
+                                   .$chloride_twa_24>102&.$chloride_twa_24<=104 ~ 6,
+                                   .$chloride_twa_24>100&.$chloride_twa_24<=102 ~ 5,
+                                   .$chloride_twa_24>98&.$chloride_twa_24<=100~ 4,
+                                   .$chloride_twa_24>96&.$chloride_twa_24<=98 ~ 3,
+                                   .$chloride_twa_24>94&.$chloride_twa_24<=96 ~ 2,
+                                   .$chloride_twa_24<=94~1,
+                                   TRUE ~ as.numeric(NA)),
+         na_24_mean_cat=case_when(.$sodium_twa_24>145 ~ 2,
+                                .$sodium_twa_24<=145  & .$sodium_twa_24>=135 ~ 0,
+                                .$sodium_twa_24<135 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         na_24_mean_catd=case_when(.$sodium_twa_24>146 ~ 11,
+                                   .$sodium_twa_24>144&.$sodium_twa_24<=146 ~ 10,
+                                   .$sodium_twa_24>142&.$sodium_twa_24<=144 ~ 9,
+                                   .$sodium_twa_24>140&.$sodium_twa_24<=142 ~ 8,
+                                   .$sodium_twa_24>138&.$sodium_twa_24<=140 ~ 7,
+                                   .$sodium_twa_24>136&.$sodium_twa_24<=138 ~ 6,
+                                   .$sodium_twa_24>134&.$sodium_twa_24<=136 ~ 5,
+                                   .$sodium_twa_24>132&.$sodium_twa_24<=134 ~ 4,
+                                   .$sodium_twa_24>130&.$sodium_twa_24<=132 ~ 3,
+                                   .$chloride_twa_24<=130~1,
+                                   TRUE ~ as.numeric(NA)),
+         sid_24_mean_cat=case_when(.$SID_twa_24>37 ~ 2,
+                                .$SID_twa_24<=37  & .$SID_twa_24>=31 ~ 0,
+                                .$SID_twa_24<31 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         sid_24_mean_catd=case_when(.$SID_twa_24>44 ~ 11,
+                                .$SID_twa_24>42  & .$SID_twa_24<=44 ~ 10,
+                                .$SID_twa_24>40  & .$SID_twa_24<=42 ~ 9,
+                                .$SID_twa_24>38  & .$SID_twa_24<=40 ~ 8,
+                                .$SID_twa_24>36  & .$SID_twa_24<=38 ~ 7,
+                                .$SID_twa_24>34  & .$SID_twa_24<=36 ~ 6,
+                                .$SID_twa_24>32  & .$SID_twa_24<=34 ~ 5,
+                                .$SID_twa_24>30  & .$SID_twa_24<=32 ~ 4,
+                                .$SID_twa_24>28  & .$SID_twa_24<=30 ~ 3,
+                                .$SID_twa_24>26  & .$SID_twa_24<=28 ~ 2,
+                                .$SID_twa_24<=26 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         cl_24_mean_catq=cut(chloride_twa_24,breaks=10,labels=c("1","2","3","4","5","6","7","8","9","10")),
+         delta_cl_d1=chloride_twa_24-chloride_first,
+         delta_na_d1=sodium_twa_24-sodium_first,
+         delta_sid_d1=SID_twa_24-SID_first)%>%
+   mutate_at(c("gender","pasthistory_chf","pasthistory_pvd","pasthistory_hypertension","pasthistory_copd","pasthistory_diabetes","cl_adm_cat","na_adm_cat","sid_adm_cat","cl_24_min_cat","cl_24_max_cat","na_24_min_cat","na_24_max_cat","sid_24_min_cat","sid_24_max_cat","ethnicity","cl_24_mean_cat","na_24_mean_cat","sid_24_mean_cat","surgery","sid_24_mean_catd","cl_24_mean_catd","na_24_mean_catd"),as.factor)
+
+#Focusing on medical patients
+df_me<-df_2%>%filter(surgery==0)
+```
+
+# Dataset report
+
+```{r}
+view(dfSummary(df_me))
+```
+
+# Export dataset
+
+```{r}
+write.csv(df_me,'df_me.csv',row.names = F)
+```
+
