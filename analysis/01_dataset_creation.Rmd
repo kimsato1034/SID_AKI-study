@@ -23,7 +23,7 @@ This chunks also creates the run_query and get_sql function.
 
 ```{r setup, include=FALSE}
 
-project_id <- "lcp-internal"
+project_id <- "hst-953-2018"
 options(httr_oauth_cache=FALSE)
 run_query <- function(query){
   data <- query_exec(query, project=project_id, use_legacy_sql=FALSE,max_pages = Inf)
@@ -268,7 +268,39 @@ write.csv(sid_aki_study,'sid_aki_study.csv',row.names = F)
 ```
 
 
+# New Variables
+
+## Data extraction from BigQuery
+
+```{r}
+admission_vars<-run_query(getSQL("sql/new_variables/admission_vars.sql"))
+mean_first_day<-run_query(getSQL("sql/new_variables/mean_first_day.sql"))
+
+```
 
 
 
+## Merging all datasets
+
+We are using a left join to join them
+
+```{r}
+# left join = all.x=TRUE
+new_variables<-Reduce(function(...) merge(..., all.x=TRUE), list(
+  admission_vars
+, mean_first_day
+))
+```
+
+## Dataset report
+
+```{r}
+view(dfSummary(new_variables))
+```
+
+## Export dataset
+
+```{r}
+write.csv(new_variables,'new_variables.csv',row.names = F)
+```
 
