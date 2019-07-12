@@ -145,7 +145,19 @@ view(dfSummary(df_me))
 
 # Export dataset
 
+Main predictors: (you may want to use 1 OR 2 in a model)
+1. Rough categories: cl_24_mean_cat,na_24_mean_cat,sid_24_mean_cat
+2. Detailed categories: cl_24_mean_catd,na_24_mean_catd,sid_24_mean_catd
+
+Patients’ baseline characteristics: (you may want to use all of the variables) age_fixed,gender,ethnicity,pasthistory_chf,pasthistory_pvd,pasthistory_hypertension,pasthistory_copd,pasthistory_diabetes,pasthistory_cld,pasthistory_malignancy,creat1, potassium_adm, bicarbonate_adm, ua_adm, heartrate_adm, systolic_adm, temperature_adm
+
+Variables for the first 24 Horus: (you may want to use all of the variables) 
+_I have used the mean_
+glucose_mean_day1, potassium_mean_day1, bicarbonate_mean_day1, albumin_mean_day1, hemoglobin_mean_day1, wbc_mean_day1, platelets_mean_day1, heartrate_mean_day1, systolic_mean_day1, temperature_mean_day1
+
+
 ```{r}
-write.csv(df_me,'df_me.csv',row.names = F)
+## Selecting only initially required variables
+write.csv(df_me%>%select(aki,AKIstage,cl_24_mean_cat,na_24_mean_cat,sid_24_mean_cat,cl_24_mean_catd,na_24_mean_catd,sid_24_mean_catd,age_fixed,gender,ethnicity,pasthistory_chf,pasthistory_pvd,pasthistory_hypertension,pasthistory_copd,pasthistory_diabetes,pasthistory_cld,pasthistory_malignancy,creat1, potassium_adm, bicarbonate_adm, ua_adm, heartrate_adm, systolic_adm, temperature_adm,glucose_mean_day1, potassium_mean_day1, bicarbonate_mean_day1, albumin_mean_day1, hemoglobin_mean_day1, wbc_mean_day1, platelets_mean_day1, heartrate_mean_day1, systolic_mean_day1, temperature_mean_day1),'df_me_selected.csv',row.names = F)
 ```
 
