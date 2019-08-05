@@ -1,0 +1,48 @@
+---
+title: "03_train_test_df_creation"
+author: "Miguel Armengol"
+date: "2/20/2019"
+output: html_notebook
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Loading libraries
+
+```{r message=FALSE, warning=FALSE}
+library(dplyr)
+library(caret)
+```
+
+# Creating de-identified id
+
+```{r}
+df_me_selected['id']<- seq.int(nrow(df_me_selected))
+```
+
+# Spliting de-identified data into testing and training, balanced version.
+
+We want the data to be sampled randomly but always the same way and we want to be sure that train and test must be balanced.
+
+```{r}
+## set the seed to make our partition reproducible
+set.seed(123)
+# createDataPartition: "the random sampling is done within the levels of y when y is a factor in an attempt to balance the class distributions within the splits."
+## 75% of the sample size
+train_idx <- createDataPartition(as.factor(df_me_selected$aki), times = 1, p = 0.75, list=F)
+train <- df_me_selected[train_idx, ]
+test <- df_me_selected[-train_idx, ]
+round(prop.table(table(train$aki)),2)
+round(prop.table(table(test$aki)),2)
+```
+
+## Exporting datasets
+
+```{r}
+write.csv(train,'train.csv',row.names = F)
+write.csv(test,'test.csv',row.names = F)
+```
+
+

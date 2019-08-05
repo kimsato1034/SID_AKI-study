@@ -158,6 +158,6 @@ glucose_mean_day1, potassium_mean_day1, bicarbonate_mean_day1, albumin_mean_day1
 
 ```{r}
 ## Selecting only initially required variables
-write.csv(df_me%>%select(aki,AKIstage,cl_24_mean_cat,na_24_mean_cat,sid_24_mean_cat,cl_24_mean_catd,na_24_mean_catd,sid_24_mean_catd,age_fixed,gender,ethnicity,pasthistory_chf,pasthistory_pvd,pasthistory_hypertension,pasthistory_copd,pasthistory_diabetes,pasthistory_cld,pasthistory_malignancy,creat1, potassium_adm, bicarbonate_adm, ua_adm, heartrate_adm, systolic_adm, temperature_adm,glucose_mean_day1, potassium_mean_day1, bicarbonate_mean_day1, albumin_mean_day1, hemoglobin_mean_day1, wbc_mean_day1, platelets_mean_day1, heartrate_mean_day1, systolic_mean_day1, temperature_mean_day1),'df_me_selected.csv',row.names = F)
+df_me_selected<-df_me%>%select( -one_of (c('patientunitstayid' ,'apacheadmissiondx' ,'unitadmitsource' ,'BMI_group' ,'unitType' ,'hospitalAdmitSource' ,'hospLOS_prior_ICUadm_days' ,'unitlos_days' ,'hosplos_days' ,'ventdays_days' ,'hospitalmortality' ,'icumortality' ,'urineoutput_total_24' ,'urineoutput_total_48' ,'creat1offset' ,'first_rrtoffset' ,'rrt_bin' ,'peakcreat48h_offset' ,'peakcreat48h' ,'peakcreat7d' ,'peakcreat7d_offset' ,'peakcreat7d_to_discharge_offsetgap'  ,'cl_adm_cat' ,'na_adm_cat' ,'sid_adm_cat' ,'cl_24_min_cat' ,'cl_24_max_cat' ,'na_24_min_cat' ,'na_24_max_cat' ,'sid_24_min_cat' ,'sid_24_max_cat' ,'cl_24_mean_cat' ,'cl_24_mean_catd' ,'na_24_mean_cat' ,'na_24_mean_catd' ,'sid_24_mean_cat' ,'sid_24_mean_catd' ,'cl_24_mean_catq' ,'delta_cl_d1' ,'delta_na_d1' ,'delta_sid_d1')) )
 ```
 

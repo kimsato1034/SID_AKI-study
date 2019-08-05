@@ -1,0 +1,345 @@
+---
+title: "Untitled"
+author: "Satoshi"
+date: "5/18/2019"
+output: html_document
+---
+
+```{r,message=F,warning=F}
+require(dplyr)
+require(MASS)
+require(ggplot2)
+require(pROC)
+require(ROCR)
+require(tableone)
+require(glmnet)
+require(caret)
+require(leaps)
+require(tree)
+require(randomForest)
+require(rpart)
+require(rattle)
+require(rpart.plot)
+require(RColorBrewer)
+require(gbm)
+require(e1071)
+require(ROCR) 
+require(tableone)
+require(splines)
+require(gam)
+require(mgcv)
+```
+
+Let me explain again the purpose of this study simply.
+
+Recently, many studies have shown that abnormal chloride concentration, especially hyperchloremia, is independently associated with AKI. However, these studies have some concerns.
+
+First, these studies only focused on chloride ion, which concentration usually increases or decreases along with sodium ion concentration. From perspective of acid-base phenomena, chloride ion concentration should be judged along with sodium ion concentration. Thus, the difference between sodium and chloride (SID) is important. That's why we want to use sodium and SID as well as chloride in this study.
+
+Second, some of the studies only used logistic regression, which assumes a linear association between log odds of AKI and chloride ion concentration. This might be wrong because both high and low ion concentration could be worse in terms of AKI (i.e. non-linear). That's why we want to use ML tecnhiques.
+
+In this study, we would like to assess associations between AKI and chloride, sodium and SID using ML technique. If possible, we want to compare which variable, among chloride, sodium and SID, is the most importantly and strongly associated with AKI.
+
+
+# Data wrangling
+
+```{r,results='hide'}
+df<-sid_aki_study
+
+#For outcomes/predictors with substantial missig data, IPW should be used?
+#Exclude CKD, rrt before admision
+
+df_1<-df%>%filter(creat1<=3)%>%mutate(aki=case_when(.$AKIstage==0~0,.$AKIstage%in%c(1,2,3)~1))%>%
+  mutate(gender=case_when(.$gender=="Female"~0,
+                          .$gender=="Male"~1,
+                          TRUE~as.numeric(NA)),
+         pre_rrt=case_when(.$rrt_bin==1&first_rrtoffset<=0~1,
+                          TRUE~0))%>%filter(pre_rrt==0)
+
+df_1$ethnicity[df_1$ethnicity ==""| 
+             df_1$ethnicity == "Native American"|
+             df_1$ethnicity == "Other/Unknow"] <- "Other/Unknown"
+
+df_1$surgery<-NA
+df_1$surgery[df_1$hospitalAdmitSource =="Operating Room"| 
+             df_1$hospitalAdmitSource == "PACU"] <- 1
+df_1$surgery[df_1$hospitalAdmitSource =="Acute Care/Floor"| 
+             df_1$hospitalAdmitSource == "Chest Pain Center"|
+             df_1$hospitalAdmitSource == "Direct Admit"|
+               df_1$hospitalAdmitSource == "Emergency Department"|
+               df_1$hospitalAdmitSource == "Floor"|
+               df_1$hospitalAdmitSource == "ICU"|
+               df_1$hospitalAdmitSource == "ICU to SDU"|
+               df_1$hospitalAdmitSource == "Observation"|
+               df_1$hospitalAdmitSource == "Other"|
+               df_1$hospitalAdmitSource == "Other Hospital"|
+               df_1$hospitalAdmitSource == "Other ICU"|
+               df_1$hospitalAdmitSource == "Recovery Room"|
+               df_1$hospitalAdmitSource == "Step-Down Unit (SDU)"] <- 0
+
+#Categorizing Na, Cl, and SID
+df_2<-df_1%>%mutate(cl_adm_cat=case_when(.$chloride_first<98 ~ 1,
+                              .$chloride_first>=98 & .$chloride_first<=110 ~ 0,
+                              .$chloride_first>110 ~ 2,
+                                TRUE ~ as.numeric(NA)),
+         na_adm_cat=case_when(.$sodium_first>145 ~ 2,
+                                .$sodium_first<=145  & .$sodium_first>=135 ~ 0,
+                                .$sodium_first<135 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         sid_adm_cat=case_when(.$SID_first>37 ~ 2,
+                                .$SID_first<=37  & .$SID_first>=31 ~ 0,
+                                .$SID_first<31 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         cl_24_min_cat=case_when(.$chloride_min_24<98 ~ 1,
+                              .$chloride_min_24>=98 & .$chloride_min_24<=110 ~ 0,
+                              .$chloride_min_24>110 ~ 2,
+                                TRUE ~ as.numeric(NA)),
+         cl_24_max_cat=case_when(.$chloride_max_24<98 ~ 1,
+                              .$chloride_max_24>=98 & .$chloride_max_24<=110 ~ 0,
+                              .$chloride_max_24>110 ~ 2,
+                                TRUE ~ as.numeric(NA)),
+         na_24_min_cat=case_when(.$sodium_min_24>145 ~ 2,
+                                .$sodium_min_24<=145  & .$sodium_min_24>=135 ~ 0,
+                                .$sodium_min_24<135 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         na_24_max_cat=case_when(.$sodium_max_24>145 ~ 2,
+                                .$sodium_max_24<=145  & .$sodium_max_24>=135 ~ 0,
+                                .$sodium_max_24<135 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         sid_24_min_cat=case_when(.$SID_min_24>37 ~ 2,
+                                .$SID_min_24<=37  & .$SID_min_24>=31 ~ 0,
+                                .$SID_min_24<3 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         sid_24_max_cat=case_when(.$SID_max_24>37 ~ 2,
+                                .$SID_max_24<=37  & .$SID_max_24>=31 ~ 0,
+                                .$SID_max_24<31 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         cl_24_mean_cat=case_when(.$chloride_twa_24<98 ~ 1,
+                              .$chloride_twa_24>=98 & .$chloride_twa_24<=110 ~ 0,
+                              .$chloride_twa_24>110 ~ 2,
+                                TRUE ~ as.numeric(NA)),
+         na_24_mean_cat=case_when(.$sodium_twa_24>145 ~ 2,
+                                .$sodium_twa_24<=145  & .$sodium_twa_24>=135 ~ 0,
+                                .$sodium_twa_24<135 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         sid_24_mean_cat=case_when(.$SID_twa_24>37 ~ 2,
+                                .$SID_twa_24<=37  & .$SID_twa_24>=31 ~ 0,
+                                .$SID_twa_24<31 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         delta_cl_d1=chloride_twa_24-chloride_first,
+         delta_na_d1=sodium_twa_24-sodium_first,
+         delta_sid_d1=SID_twa_24-SID_first)%>%
+   mutate_at(c("gender","pasthistory_chf","pasthistory_pvd","pasthistory_hypertension","pasthistory_copd","pasthistory_diabetes","cl_adm_cat","na_adm_cat","sid_adm_cat","cl_24_min_cat","cl_24_max_cat","na_24_min_cat","na_24_max_cat","sid_24_min_cat","sid_24_max_cat","ethnicity","cl_24_mean_cat","na_24_mean_cat","sid_24_mean_cat","aki","surgery"),as.factor)
+
+#Focusing on medical patients
+df_me<-df_2%>%filter(surgery==0)
+```
+
+As the primary outcome, we would like to focus on AKI.
+We have mainly two types of variables based on the phase: 1) variables at admission, 2) variables for the first 24 hours. Analyses were conducted based on the phase as follows.
+
+# Variables at admission
+
+```{r}
+#Wrangling
+df_adm<-df_me%>%filter(!is.na(chloride_first),!is.na(sodium_first),!is.na(SID_first),!is.na(aki))
+nrow(df_adm)
+
+#table one
+CreateTableOne(vars=c("gender","age_fixed","weight","pao2_first","paco2_first","pH_first","baseexcess_first","albumin_first","bilirubin_first","BUN_first","wbc_first","platelets_first","hematocrit_first","hemoglobin_first","glucose_first","pasthistory_chf","pasthistory_pvd","pasthistory_hypertension","pasthistory_copd","pasthistory_diabetes","sodium_first","chloride_first","SID_first","cl_adm_cat","na_adm_cat","sid_adm_cat","creat1"),strata="aki",data=df_adm)
+
+#Distribution
+#Time-weighted mean chloride
+df_adm%>%ggplot()+
+  geom_histogram(aes(chloride_first),binwidth = 1)
+#Time-weighted mean sodium
+df_adm%>%ggplot()+
+  geom_histogram(aes(sodium_first),binwidth = 1)
+#Time-weighted mean (Na-Cl)
+df_adm%>%ggplot()+
+  geom_histogram(aes(SID_first),binwidth = 1)
+
+#Association between AKI and ions.
+#chloride
+gam<-gam(aki~s(chloride_first,bs="tp",k=10),data=df_adm,family="binomial")
+plot(gam)
+#sodium
+gam<-gam(aki~s(sodium_first,bs="tp",k=10),data=df_adm,family="binomial")
+plot(gam)
+#Na-Cl
+gam<-gam(aki~s(SID_first,bs="tp",k=10),data=df_adm,family="binomial")
+plot(gam)
+```
+
+As we can see, the association between those variables and AKI is non-linear (maybe U-shape). Thus, using Cl, Na, and SID as continuous variables in logistic regression is wrong. One solution is using Cl, Na, and SID as categorical variables.
+
+```{r}
+# Analysis using categorical Cl, Na, and SID
+# Logistic regression 
+model<-glm(aki~cl_adm_cat+na_adm_cat+sid_adm_cat+
+      gender+age_fixed+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+ethnicity+creat1,data=df_adm,family="binomial")
+summary(model)
+exp(cbind(OR=coef(model), confint.default(model)))
+
+# With lab data
+model<-glm(aki~cl_adm_cat+na_adm_cat+sid_adm_cat+
+      gender+age_fixed+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+ethnicity+creat1+
+        albumin_first+hemoglobin_first+glucose_first,data=df_adm,family="binomial")
+summary(model)
+
+#Backward selection
+#step(model,scope=list(lower=~cl_adm_cat+na_adm_cat+sid_adm_cat,upper=model),direction="backward",k=2)
+```
+
+In this model, only high SID is associated with AKI.
+
+Another way is using other ML methods such as spline and tree. However, I am not good at those methods.
+I would appreciate it if you could give me some advice and correct the following codes.
+
+## Quartiles Study
+
+Analysis using quartiles of Cl, Na, and SID on admission
+
+```{r}
+# Logistic regression 
+
+
+# With lab data
+model<-glm(aki ~ 	cut(chloride_first,breaks = 4,labels = c('1','2','3','4')) 
+                + cut(sodium_first,breaks = 4,labels = c('1','2','3','4'))
+                + cut(SID_first,breaks = 4,labels = c('1','2','3','4'))
+      +gender+age_fixed+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+ethnicity+creat1
+      +albumin_first+hemoglobin_first+glucose_first,data=df_adm,family="binomial")
+round(exp(cbind(OR=coef(model), confint.default(model))),2)
+
+```
+
+
+```{r}
+#Analysis using continuous Cl, Na, and SID
+#Spline 
+#Cl vs. Na
+gam<-gam(aki~s(chloride_first,sodium_first,bs="tp",k=10),data=df_adm,family="binomial")
+plot(gam)
+
+#Main predictors
+gam<-gam(aki~s(chloride_first,bs="tp",k=10)+s(sodium_first,bs="tp",k=10)+s(SID_first,bs="tp",k=10)+
+           gender+age_fixed+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+ethnicity+creat1,data=df_adm,family="binomial")
+summary(gam)
+
+#More covariates
+model<-gam(aki~s(chloride_first,bs="tp",k=10)+s(sodium_first,bs="tp",k=10)+s(SID_first,bs="tp",k=10)+s(pao2_first,bs="tp",k=10)+s(paco2_first,bs="tp",k=10)+s(pH_first,bs="tp",k=10)+s(baseexcess_first,bs="tp",k=10)+s(albumin_first,bs="tp",k=10)+s(wbc_first,bs="tp",k=10)+s(platelets_first,bs="tp",k=10)+s(hemoglobin_first,bs="tp",k=10)+s(glucose_first,bs="tp",k=10)+
+      gender+age_fixed+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+ethnicity+creat1,data=df_adm,family="binomial")
+summary(model)
+
+#How to diagnose colinear relationship??
+```
+
+# Variables for the first 24 hours
+
+Using variables in the first 24 hours, I did the same analyses as above. 
+
+```{r}
+#Wrangling
+df_24h<-df_me%>%filter(!is.na(chloride_twa_24),!is.na(sodium_twa_24),!is.na(SID_twa_24),!is.na(aki))
+nrow(df_24h)
+
+#table one
+CreateTableOne(vars=c("fio2_min_24" ,   "pao2_min_24"  ,  "paco2_min_24","pH_min_24","aniongap_min_24","basedeficit_min_24","baseexcess_min_24","peep_min24","pao2_max_24","paco2_max_24","pH_max_24", "aniongap_max_24"     ,"basedeficit_max_24"  , "baseexcess_max_24"   ,"peep_max24","glucose_min_24","hemoglobin_min_24","hematocrit_min_24"   ,"platelets_min_24"  , "BUN_min_24"    ,"wbc_min_24"   , "albumin_min_24"         ,"bilirubin_min24" ,"glucose_max_24","hemoglobin_max_24","hematocrit_max_24","platelets_max_24","BUN_max_24","wbc_max_24","albumin_max_24","bilirubin_max24"),strata="aki",data=df_24h)
+
+CreateTableOne(vars=c("hst_hr_day1","me_hr_day1","lest_sys_day1","me_sys_day1","lest_dia_day1","me_dia_day1","hst_temp"),strata="aki",data=df_24h)
+
+CreateTableOne(vars=c("chloride_min_24","chloride_max_24","chloride_twa_24","sodium_min_24","sodium_max_24","sodium_twa_24","SID_min_24","SID_max_24","SID_twa_24","cl_24_mean_cat","na_24_mean_cat","sid_24_mean_cat","creat1"),strata="aki",data=df_24h)
+
+#glm(aki~cl_24_min_cat+na_24_min_cat+sid_24_min_cat+cl_24_max_cat+na_24_max_cat+sid_24_max_cat,data=df_2,family="binomial")%>%summary() 
+#could be protective for cl_24_min_cat=2, thus, no sense for this model. We should use time_weighted mean.
+
+#Analysis using categorical Cl, Na, and SID
+#Logistic regression 
+model<-glm(aki~cl_24_mean_cat+na_24_mean_cat+sid_24_mean_cat+
+      me_hr_day1+me_sys_day1+hst_temp+hemoglobin_min_24+platelets_min_24+albumin_min_24+wbc_max_24+mechvent_day01+urineoutput_total_24+
+      gender+age_fixed+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+ethnicity+creat1,data=df_24h,family="binomial")
+summary(model)
+
+#Analysis using continuous Cl, Na, and SID
+#Spline 
+#chloride
+gam<-gam(aki~s(chloride_twa_24,bs="tp",k=10),data=df_24h,family="binomial")
+plot(gam)
+#sodium
+gam<-gam(aki~s(sodium_twa_24,bs="tp",k=10),data=df_24h,family="binomial")
+plot(gam)
+#Na-Cl
+gam<-gam(aki~s(SID_twa_24,bs="tp",k=10),data=df_24h,family="binomial")
+plot(gam)
+
+
+#Main predictors
+model<-gam(aki~s(chloride_twa_24,bs="tp",k=10)+s(sodium_twa_24,bs="tp",k=10)+s(SID_twa_24,bs="tp",k=10)+me_hr_day1+me_sys_day1+hst_temp+hemoglobin_min_24+platelets_min_24+albumin_min_24+wbc_max_24+mechvent_day01+
+      gender+age_fixed+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+ethnicity,data=df_2,family="binomial")
+summary(model)
+```
+
+As you can see, the associations between Cl, Na, and SID and AKI for the first 24 hours are stronger than those at admission.
+Again, I am not good at those ML methods. I really would appreciate it if you could give me some advice and correct the following codes.
+
+##Creating training and test set
+```{r}
+#Exclude chronic kidney dysfunction and high Cre ad admission
+df_24h_1<-df_24h%>%dplyr::select(aki,cl_24_mean_cat,na_24_mean_cat,sid_24_mean_cat,me_hr_day1,me_sys_day1,hst_temp,hemoglobin_min_24,platelets_min_24,albumin_min_24,wbc_max_24,mechvent_day01,gender,age_fixed,pasthistory_chf,pasthistory_pvd,pasthistory_hypertension,pasthistory_copd,pasthistory_diabetes,ethnicity,chloride_twa_24,sodium_twa_24,SID_twa_24,creat1,urineoutput_total_24)%>%na.omit()
+colnames(df_24h_1)
+
+# Creating training set and test set
+set.seed(123)
+train=sample(c(TRUE,FALSE), nrow(df_24h_1),rep=TRUE)	
+test=(!train)
+x_train=model.matrix(aki~.,df_24h_1[train,])[,-1]
+y_train=df_24h_1[train,]$aki
+x_test=model.matrix(aki~.,df_24h_1[test,])[,-1]
+y_test=df_24h_1[test,]$aki
+```
+
+
+# Decision tree
+```{r}
+tree<-rpart(as.factor(aki)~.,data=df_24h_1,control=rpart.control(minsplit=10, cp=0.0005))
+printcp(tree)
+plotcp(tree)
+prune(tree, cp=tree$cptable[which.min(tree$cptable[,"xerror"]),"CP"])
+#plot(tree, uniform=TRUE, main="Classification Tree")
+#text(tree, use.n=TRUE, all=TRUE, cex=.5)
+#varImp(tree)
+```
+
+# RF
+```{r,eval=F}
+control <- trainControl(method='repeatedcv',number=10, repeats=1,search="grid")
+metric <- "Accuracy"
+tunegrid <- expand.grid(mtry=(1:4))
+rf<- train(as.factor(aki)~chloride_twa_24+sodium_twa_24+SID_twa_24+ me_hr_day1+me_sys_day1+hst_temp+hemoglobin_min_24+platelets_min_24+albumin_min_24+wbc_max_24+mechvent_day01+urineoutput_total_24+gender+age_fixed+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+ethnicity, data=df_24h_1,method='rf', metric='Accuracy',tuneGrid=tunegrid, trControl=control)
+print(rf)
+plot(rf)
+varImp(rf)
+```
+
+
+# Mortality
+After finishing analyses for AKI, we can expand secondary outcomes as mortality.
+
+```{r}
+gam<-gam(icumortality~s(chloride_twa_24,bs="tp",k=10),data=df_24h,family="binomial")
+plot(gam)
+
+
+model<-glm(icumortality~cl_24_mean_cat+na_24_mean_cat+sid_24_mean_cat+
+      me_hr_day1+me_sys_day1+hst_temp+hemoglobin_min_24+platelets_min_24+albumin_min_24+wbc_max_24+mechvent_day01+baseexcess_min_24+
+      gender+age_fixed+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+ethnicity,data=df_2,family="binomial")
+summary(model)
+
+
+model<-gam(icumortality~s(chloride_twa_24,bs="tp",k=10)+s(sodium_twa_24,bs="tp",k=10)+s(SID_twa_24,bs="tp",k=10)+me_hr_day1+me_sys_day1+hst_temp+hemoglobin_min_24+platelets_min_24+albumin_min_24+wbc_max_24+mechvent_day01+
+      gender+age_fixed+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+ethnicity,data=df_2,family="binomial")
+summary(model)
+```
+
+
