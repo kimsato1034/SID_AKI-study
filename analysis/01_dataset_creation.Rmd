@@ -270,6 +270,7 @@ cat(names(sid_aki_study),sep = '\n')
 
 ```{r}
 view(dfSummary(sid_aki_study))
+View(dfSummary(sid_aki_study))
 ```
 
 # Export dataset

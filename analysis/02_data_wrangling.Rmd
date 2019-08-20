@@ -5,8 +5,10 @@ output: html_document
 
 ```{r}
 library(dplyr)
+library(Amelia)
 ```
 
+# Creating new variables
 
 ````{r,results='hide'}
 #For outcomes/predictors with substantial missig data, IPW should be used?
@@ -54,6 +56,8 @@ df_2<-df_1%>%mutate(cl_adm_cat=case_when(.$chloride_first<98 ~ 1,
                                 .$SID_first<=37  & .$SID_first>=31 ~ 0,
                                 .$SID_first<31 ~ 1,
                                 TRUE ~ as.numeric(NA)),
+         
+         # 24 hours variables start here
          cl_24_min_cat=case_when(.$chloride_min_24<98 ~ 1,
                               .$chloride_min_24>=98 & .$chloride_min_24<=110 ~ 0,
                               .$chloride_min_24>110 ~ 2,
@@ -78,86 +82,261 @@ df_2<-df_1%>%mutate(cl_adm_cat=case_when(.$chloride_first<98 ~ 1,
                                 .$SID_max_24<=37  & .$SID_max_24>=31 ~ 0,
                                 .$SID_max_24<31 ~ 1,
                                 TRUE ~ as.numeric(NA)),
-         cl_24_mean_cat=case_when(.$chloride_twa_24<98 ~ 1,
-                              .$chloride_twa_24>=98 & .$chloride_twa_24<=110 ~ 0,
-                              .$chloride_twa_24>110 ~ 2,
+         cl_24_mean_cat=case_when(.$chloride_twa_24hr<98 ~ 1,
+                              .$chloride_twa_24hr>=98 & .$chloride_twa_24hr<=110 ~ 0,
+                              .$chloride_twa_24hr>110 ~ 2,
                                 TRUE ~ as.numeric(NA)),
-         cl_24_mean_catd=case_when(.$chloride_twa_24>116 ~ 13,
-                                   .$chloride_twa_24>114&.$chloride_twa_24<=116 ~ 12,
-                                   .$chloride_twa_24>112&.$chloride_twa_24<=114 ~ 11,
-                                   .$chloride_twa_24>110&.$chloride_twa_24<=112 ~ 10,
-                                   .$chloride_twa_24>108&.$chloride_twa_24<=110 ~ 9,
-                                   .$chloride_twa_24>106&.$chloride_twa_24<=108 ~ 8,
-                                   .$chloride_twa_24>104&.$chloride_twa_24<=106 ~ 7,
-                                   .$chloride_twa_24>102&.$chloride_twa_24<=104 ~ 6,
-                                   .$chloride_twa_24>100&.$chloride_twa_24<=102 ~ 5,
-                                   .$chloride_twa_24>98&.$chloride_twa_24<=100~ 4,
-                                   .$chloride_twa_24>96&.$chloride_twa_24<=98 ~ 3,
-                                   .$chloride_twa_24>94&.$chloride_twa_24<=96 ~ 2,
-                                   .$chloride_twa_24<=94~1,
+         cl_24_mean_catd=case_when(.$chloride_twa_24hr>116 ~ 13,
+                                   .$chloride_twa_24hr>114&.$chloride_twa_24hr<=116 ~ 12,
+                                   .$chloride_twa_24hr>112&.$chloride_twa_24hr<=114 ~ 11,
+                                   .$chloride_twa_24hr>110&.$chloride_twa_24hr<=112 ~ 10,
+                                   .$chloride_twa_24hr>108&.$chloride_twa_24hr<=110 ~ 9,
+                                   .$chloride_twa_24hr>106&.$chloride_twa_24hr<=108 ~ 8,
+                                   .$chloride_twa_24hr>104&.$chloride_twa_24hr<=106 ~ 7,
+                                   .$chloride_twa_24hr>102&.$chloride_twa_24hr<=104 ~ 6,
+                                   .$chloride_twa_24hr>100&.$chloride_twa_24hr<=102 ~ 5,
+                                   .$chloride_twa_24hr>98&.$chloride_twa_24hr<=100~ 4,
+                                   .$chloride_twa_24hr>96&.$chloride_twa_24hr<=98 ~ 3,
+                                   .$chloride_twa_24hr>94&.$chloride_twa_24hr<=96 ~ 2,
+                                   .$chloride_twa_24hr<=94~1,
                                    TRUE ~ as.numeric(NA)),
-         na_24_mean_cat=case_when(.$sodium_twa_24>145 ~ 2,
-                                .$sodium_twa_24<=145  & .$sodium_twa_24>=135 ~ 0,
-                                .$sodium_twa_24<135 ~ 1,
+         na_24_mean_cat=case_when(.$sodium_twa_24hr>145 ~ 2,
+                                .$sodium_twa_24hr<=145  & .$sodium_twa_24hr>=135 ~ 0,
+                                .$sodium_twa_24hr<135 ~ 1,
                                 TRUE ~ as.numeric(NA)),
-         na_24_mean_catd=case_when(.$sodium_twa_24>146 ~ 11,
-                                   .$sodium_twa_24>144&.$sodium_twa_24<=146 ~ 10,
-                                   .$sodium_twa_24>142&.$sodium_twa_24<=144 ~ 9,
-                                   .$sodium_twa_24>140&.$sodium_twa_24<=142 ~ 8,
-                                   .$sodium_twa_24>138&.$sodium_twa_24<=140 ~ 7,
-                                   .$sodium_twa_24>136&.$sodium_twa_24<=138 ~ 6,
-                                   .$sodium_twa_24>134&.$sodium_twa_24<=136 ~ 5,
-                                   .$sodium_twa_24>132&.$sodium_twa_24<=134 ~ 4,
-                                   .$sodium_twa_24>130&.$sodium_twa_24<=132 ~ 3,
-                                   .$chloride_twa_24<=130~1,
+         na_24_mean_catd=case_when(.$sodium_twa_24hr>146 ~ 11,
+                                   .$sodium_twa_24hr>144&.$sodium_twa_24hr<=146 ~ 10,
+                                   .$sodium_twa_24hr>142&.$sodium_twa_24hr<=144 ~ 9,
+                                   .$sodium_twa_24hr>140&.$sodium_twa_24hr<=142 ~ 8,
+                                   .$sodium_twa_24hr>138&.$sodium_twa_24hr<=140 ~ 7,
+                                   .$sodium_twa_24hr>136&.$sodium_twa_24hr<=138 ~ 6,
+                                   .$sodium_twa_24hr>134&.$sodium_twa_24hr<=136 ~ 5,
+                                   .$sodium_twa_24hr>132&.$sodium_twa_24hr<=134 ~ 4,
+                                   .$sodium_twa_24hr>130&.$sodium_twa_24hr<=132 ~ 3,
+                                   .$chloride_twa_24hr<=130~1,
                                    TRUE ~ as.numeric(NA)),
-         sid_24_mean_cat=case_when(.$SID_twa_24>37 ~ 2,
-                                .$SID_twa_24<=37  & .$SID_twa_24>=31 ~ 0,
-                                .$SID_twa_24<31 ~ 1,
+         sid_24_mean_cat=case_when(.$SID_twa_24hr>37 ~ 2,
+                                .$SID_twa_24hr<=37  & .$SID_twa_24hr>=31 ~ 0,
+                                .$SID_twa_24hr<31 ~ 1,
                                 TRUE ~ as.numeric(NA)),
-         sid_24_mean_catd=case_when(.$SID_twa_24>44 ~ 11,
-                                .$SID_twa_24>42  & .$SID_twa_24<=44 ~ 10,
-                                .$SID_twa_24>40  & .$SID_twa_24<=42 ~ 9,
-                                .$SID_twa_24>38  & .$SID_twa_24<=40 ~ 8,
-                                .$SID_twa_24>36  & .$SID_twa_24<=38 ~ 7,
-                                .$SID_twa_24>34  & .$SID_twa_24<=36 ~ 6,
-                                .$SID_twa_24>32  & .$SID_twa_24<=34 ~ 5,
-                                .$SID_twa_24>30  & .$SID_twa_24<=32 ~ 4,
-                                .$SID_twa_24>28  & .$SID_twa_24<=30 ~ 3,
-                                .$SID_twa_24>26  & .$SID_twa_24<=28 ~ 2,
-                                .$SID_twa_24<=26 ~ 1,
+         sid_24_mean_catd=case_when(.$SID_twa_24hr>44 ~ 11,
+                                .$SID_twa_24hr>42  & .$SID_twa_24hr<=44 ~ 10,
+                                .$SID_twa_24hr>40  & .$SID_twa_24hr<=42 ~ 9,
+                                .$SID_twa_24hr>38  & .$SID_twa_24hr<=40 ~ 8,
+                                .$SID_twa_24hr>36  & .$SID_twa_24hr<=38 ~ 7,
+                                .$SID_twa_24hr>34  & .$SID_twa_24hr<=36 ~ 6,
+                                .$SID_twa_24hr>32  & .$SID_twa_24hr<=34 ~ 5,
+                                .$SID_twa_24hr>30  & .$SID_twa_24hr<=32 ~ 4,
+                                .$SID_twa_24hr>28  & .$SID_twa_24hr<=30 ~ 3,
+                                .$SID_twa_24hr>26  & .$SID_twa_24hr<=28 ~ 2,
+                                .$SID_twa_24hr<=26 ~ 1,
                                 TRUE ~ as.numeric(NA)),
-         cl_24_mean_catq=cut(chloride_twa_24,breaks=10,labels=c("1","2","3","4","5","6","7","8","9","10")),
-         delta_cl_d1=chloride_twa_24-chloride_first,
-         delta_na_d1=sodium_twa_24-sodium_first,
-         delta_sid_d1=SID_twa_24-SID_first)%>%
-   mutate_at(c("gender","pasthistory_chf","pasthistory_pvd","pasthistory_hypertension","pasthistory_copd","pasthistory_diabetes","cl_adm_cat","na_adm_cat","sid_adm_cat","cl_24_min_cat","cl_24_max_cat","na_24_min_cat","na_24_max_cat","sid_24_min_cat","sid_24_max_cat","ethnicity","cl_24_mean_cat","na_24_mean_cat","sid_24_mean_cat","surgery","sid_24_mean_catd","cl_24_mean_catd","na_24_mean_catd"),as.factor)
+         cl_24_mean_catq=cut(chloride_twa_24hr,breaks=10,labels=c("1","2","3","4","5","6","7","8","9","10")),
+         delta_cl_d1=chloride_twa_24hr-chloride_first,
+         delta_na_d1=sodium_twa_24hr-sodium_first,
+         delta_sid_d1=SID_twa_24hr-SID_first,
+         
+         # 48 hours variables start here
+          cl_48_min_cat=case_when(.$chloride_min_48<98 ~ 1,
+                              .$chloride_min_48>=98 & .$chloride_min_48<=110 ~ 0,
+                              .$chloride_min_48>110 ~ 2,
+                                TRUE ~ as.numeric(NA)),
+         cl_48_max_cat=case_when(.$chloride_max_48<98 ~ 1,
+                              .$chloride_max_48>=98 & .$chloride_max_48<=110 ~ 0,
+                              .$chloride_max_48>110 ~ 2,
+                                TRUE ~ as.numeric(NA)),
+         na_48_min_cat=case_when(.$sodium_min_48>145 ~ 2,
+                                .$sodium_min_48<=145  & .$sodium_min_48>=135 ~ 0,
+                                .$sodium_min_48<135 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         na_48_max_cat=case_when(.$sodium_max_48>145 ~ 2,
+                                .$sodium_max_48<=145  & .$sodium_max_48>=135 ~ 0,
+                                .$sodium_max_48<135 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         sid_48_min_cat=case_when(.$SID_min_48>37 ~ 2,
+                                .$SID_min_48<=37  & .$SID_min_48>=31 ~ 0,
+                                .$SID_min_48<3 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         sid_48_max_cat=case_when(.$SID_max_48>37 ~ 2,
+                                .$SID_max_48<=37  & .$SID_max_48>=31 ~ 0,
+                                .$SID_max_48<31 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         cl_48_mean_cat=case_when(.$chloride_twa_48hr<98 ~ 1,
+                              .$chloride_twa_48hr>=98 & .$chloride_twa_48hr<=110 ~ 0,
+                              .$chloride_twa_48hr>110 ~ 2,
+                                TRUE ~ as.numeric(NA)),
+         cl_48_mean_catd=case_when(.$chloride_twa_48hr>116 ~ 13,
+                                   .$chloride_twa_48hr>114&.$chloride_twa_48hr<=116 ~ 12,
+                                   .$chloride_twa_48hr>112&.$chloride_twa_48hr<=114 ~ 11,
+                                   .$chloride_twa_48hr>110&.$chloride_twa_48hr<=112 ~ 10,
+                                   .$chloride_twa_48hr>108&.$chloride_twa_48hr<=110 ~ 9,
+                                   .$chloride_twa_48hr>106&.$chloride_twa_48hr<=108 ~ 8,
+                                   .$chloride_twa_48hr>104&.$chloride_twa_48hr<=106 ~ 7,
+                                   .$chloride_twa_48hr>102&.$chloride_twa_48hr<=104 ~ 6,
+                                   .$chloride_twa_48hr>100&.$chloride_twa_48hr<=102 ~ 5,
+                                   .$chloride_twa_48hr>98&.$chloride_twa_48hr<=100~ 4,
+                                   .$chloride_twa_48hr>96&.$chloride_twa_48hr<=98 ~ 3,
+                                   .$chloride_twa_48hr>94&.$chloride_twa_48hr<=96 ~ 2,
+                                   .$chloride_twa_48hr<=94~1,
+                                   TRUE ~ as.numeric(NA)),
+         na_48_mean_cat=case_when(.$sodium_twa_48hr>145 ~ 2,
+                                .$sodium_twa_48hr<=145  & .$sodium_twa_48hr>=135 ~ 0,
+                                .$sodium_twa_48hr<135 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         na_48_mean_catd=case_when(.$sodium_twa_48hr>146 ~ 11,
+                                   .$sodium_twa_48hr>144&.$sodium_twa_48hr<=146 ~ 10,
+                                   .$sodium_twa_48hr>142&.$sodium_twa_48hr<=144 ~ 9,
+                                   .$sodium_twa_48hr>140&.$sodium_twa_48hr<=142 ~ 8,
+                                   .$sodium_twa_48hr>138&.$sodium_twa_48hr<=140 ~ 7,
+                                   .$sodium_twa_48hr>136&.$sodium_twa_48hr<=138 ~ 6,
+                                   .$sodium_twa_48hr>134&.$sodium_twa_48hr<=136 ~ 5,
+                                   .$sodium_twa_48hr>132&.$sodium_twa_48hr<=134 ~ 4,
+                                   .$sodium_twa_48hr>130&.$sodium_twa_48hr<=132 ~ 3,
+                                   .$chloride_twa_48hr<=130~1,
+                                   TRUE ~ as.numeric(NA)),
+         sid_48_mean_cat=case_when(.$SID_twa_48hr>37 ~ 2,
+                                .$SID_twa_48hr<=37  & .$SID_twa_48hr>=31 ~ 0,
+                                .$SID_twa_48hr<31 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         sid_48_mean_catd=case_when(.$SID_twa_48hr>44 ~ 11,
+                                .$SID_twa_48hr>42  & .$SID_twa_48hr<=44 ~ 10,
+                                .$SID_twa_48hr>40  & .$SID_twa_48hr<=42 ~ 9,
+                                .$SID_twa_48hr>38  & .$SID_twa_48hr<=40 ~ 8,
+                                .$SID_twa_48hr>36  & .$SID_twa_48hr<=38 ~ 7,
+                                .$SID_twa_48hr>34  & .$SID_twa_48hr<=36 ~ 6,
+                                .$SID_twa_48hr>32  & .$SID_twa_48hr<=34 ~ 5,
+                                .$SID_twa_48hr>30  & .$SID_twa_48hr<=32 ~ 4,
+                                .$SID_twa_48hr>28  & .$SID_twa_48hr<=30 ~ 3,
+                                .$SID_twa_48hr>26  & .$SID_twa_48hr<=28 ~ 2,
+                                .$SID_twa_48hr<=26 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         cl_48_mean_catq=cut(chloride_twa_48hr,breaks=10,labels=c("1","2","3","4","5","6","7","8","9","10")),
+         delta_cl_d2=chloride_twa_48hr-chloride_first,
+         delta_na_d2=sodium_twa_48hr-sodium_first,
+         delta_sid_d2=SID_twa_48hr-SID_first
+         
+         
+         )%>%
+   mutate_at(c("gender","pasthistory_chf","pasthistory_pvd","pasthistory_hypertension","pasthistory_copd","pasthistory_diabetes","cl_adm_cat","na_adm_cat","sid_adm_cat"
+               
+               ,"cl_24_min_cat","cl_24_max_cat","na_24_min_cat","na_24_max_cat","sid_24_min_cat","sid_24_max_cat","ethnicity","cl_24_mean_cat","na_24_mean_cat","sid_24_mean_cat","surgery","sid_24_mean_catd","cl_24_mean_catd","na_24_mean_catd"
+
+               ,"cl_48_min_cat","cl_48_max_cat","na_48_min_cat","na_48_max_cat","sid_48_min_cat","sid_48_max_cat","cl_48_mean_cat","na_48_mean_cat","sid_48_mean_cat","surgery","sid_48_mean_catd","cl_48_mean_catd","na_48_mean_catd"               
+               ),as.factor)
 
 #Focusing on medical patients
 df_me<-df_2%>%filter(surgery==0)
 ```
 
-# Dataset report
+## Dataset report
 
 ```{r}
 view(dfSummary(df_me))
 ```
 
-# Export dataset
+# Selecting variables
 
 Main predictors: (you may want to use 1 OR 2 in a model)
 1. Rough categories: cl_24_mean_cat,na_24_mean_cat,sid_24_mean_cat
 2. Detailed categories: cl_24_mean_catd,na_24_mean_catd,sid_24_mean_catd
 
-Patients’ baseline characteristics: (you may want to use all of the variables) age_fixed,gender,ethnicity,pasthistory_chf,pasthistory_pvd,pasthistory_hypertension,pasthistory_copd,pasthistory_diabetes,pasthistory_cld,pasthistory_malignancy,creat1, potassium_adm, bicarbonate_adm, ua_adm, heartrate_adm, systolic_adm, temperature_adm
+Patients’ baseline characteristics: (we may want to use all of the variables) age_fixed,gender,ethnicity,pasthistory_chf,pasthistory_pvd,pasthistory_hypertension,pasthistory_copd,pasthistory_diabetes,pasthistory_cld,pasthistory_malignancy,creat1, potassium_adm, bicarbonate_adm, ua_adm, heartrate_adm, systolic_adm, temperature_adm
 
-Variables for the first 24 Horus: (you may want to use all of the variables) 
+Variables for the first 24 Horus: (we may want to use all of the variables) 
 _I have used the mean_
 glucose_mean_day1, potassium_mean_day1, bicarbonate_mean_day1, albumin_mean_day1, hemoglobin_mean_day1, wbc_mean_day1, platelets_mean_day1, heartrate_mean_day1, systolic_mean_day1, temperature_mean_day1
 
 
 ```{r}
 ## Selecting only initially required variables
-df_me_selected<-df_me%>%select( -one_of (c('patientunitstayid' ,'apacheadmissiondx' ,'unitadmitsource' ,'BMI_group' ,'unitType' ,'hospitalAdmitSource' ,'hospLOS_prior_ICUadm_days' ,'unitlos_days' ,'hosplos_days' ,'ventdays_days' ,'hospitalmortality' ,'icumortality' ,'urineoutput_total_24' ,'urineoutput_total_48' ,'creat1offset' ,'first_rrtoffset' ,'rrt_bin' ,'peakcreat48h_offset' ,'peakcreat48h' ,'peakcreat7d' ,'peakcreat7d_offset' ,'peakcreat7d_to_discharge_offsetgap'  ,'cl_adm_cat' ,'na_adm_cat' ,'sid_adm_cat' ,'cl_24_min_cat' ,'cl_24_max_cat' ,'na_24_min_cat' ,'na_24_max_cat' ,'sid_24_min_cat' ,'sid_24_max_cat' ,'cl_24_mean_cat' ,'cl_24_mean_catd' ,'na_24_mean_cat' ,'na_24_mean_catd' ,'sid_24_mean_cat' ,'sid_24_mean_catd' ,'cl_24_mean_catq' ,'delta_cl_d1' ,'delta_na_d1' ,'delta_sid_d1')) )
+df_me_selected<-df_me%>%select( -one_of (c('apacheadmissiondx' ,'unitadmitsource' ,'BMI_group' ,'unitType' ,'hospitalAdmitSource' ,'hospLOS_prior_ICUadm_days' ,'unitlos_days' ,'hosplos_days' ,'ventdays_days' ,'hospitalmortality' ,'icumortality' ,'urineoutput_total_24' ,'urineoutput_total_48' ,'creat1offset' ,'first_rrtoffset' ,'rrt_bin' ,'peakcreat48h_offset' ,'peakcreat48h' ,'peakcreat7d' ,'peakcreat7d_offset' ,'peakcreat7d_to_discharge_offsetgap'  ,'cl_adm_cat' ,'na_adm_cat' ,'sid_adm_cat' ,'cl_24_min_cat' ,'cl_24_max_cat' ,'na_24_min_cat' ,'na_24_max_cat' ,'sid_24_min_cat' ,'sid_24_max_cat' ,'cl_24_mean_cat' ,'cl_24_mean_catd' ,'na_24_mean_cat' ,'na_24_mean_catd' ,'sid_24_mean_cat' ,'sid_24_mean_catd' ,'cl_24_mean_catq' ,'delta_cl_d1' ,'delta_na_d1' ,'delta_sid_d1')) )
+```
+
+# Imputation on selected variables
+
+## Mean Imputation
+
+```{r}
+df_me_selected_imputed<-df_me_selected
+
+for(i in 1:ncol(df_me_selected_imputed)){
+  df_me_selected_imputed[is.na(df_me_selected_imputed[,i]), i] <- mean(df_me_selected_imputed[,i], na.rm = TRUE)
+}
+```
+
+## Recovering non-imputable columns
+
+We are not imputing variables that: 
+
+A) *Almost sure they are MNAR* 
+fio2_first, peep_first, peep_min_48, 
+
+B) *Could be MNAR*
+pao2_first, paco2_first, ph_first, anoingap_first, basedeficit_first, baseexcess_first,
+
+fio2_min_24, pao2_min_24, pH_min_24, aniongap_min_24, basedeficit_min_24, baseexcess_min_24, peep_min24, fio2_max_24, pao2_max_24, paco2_max_24, pH_max_24, aniongap_max_24, basedeficit_max_24, baseexcess_max_24, peep_max24, 
+
+fio2_min_48, pao2_min_48, paco2_min_48, pH_min_48, aniongap_min_48, basedeficit_min_48, baseexcess_min_48, fio2_max_48, pao2_max_48, paco2_max_48, pH_max_48, aniongap_max_48, basedeficit_max_48, baseexcess_max_48, peep_max_48
+
+We are also not imputing those variables with more than 70% missing values.
+
+### Studying variables missing values
+
+```{r}
+missing_values<-as.data.frame(sapply(df_me_selected, function(x) round(sum(is.na(x))/length(x),2)))
+names(missing_values)<-'percentage_missing'
+
+toomany_missing<-rownames(subset(missing_values,missing_values$percentage_missing>0.70))
+```
+
+### Final replacement
+
+We are not imputing values listed above, so we replace the imputed columns with the orginal ones
+
+```{r}
+keep.origninal<-select(df_me_selected,c(
+# MNAR  
+fio2_first, peep_first, peep_min_48, 
+pao2_first, paco2_first, pH_first, aniongap_first, basedeficit_first, baseexcess_first,
+
+fio2_min_24, pao2_min_24, pH_min_24, aniongap_min_24, basedeficit_min_24, baseexcess_min_24, peep_min24, fio2_max_24, pao2_max_24, paco2_max_24, pH_max_24, aniongap_max_24, basedeficit_max_24, baseexcess_max_24, peep_max24, 
+
+fio2_min_48, pao2_min_48, paco2_min_48, pH_min_48, aniongap_min_48, basedeficit_min_48, baseexcess_min_48, fio2_max_48, pao2_max_48, paco2_max_48, pH_max_48, aniongap_max_48, basedeficit_max_48, baseexcess_max_48, peep_max_48,
+# too many missing values
+fio2_first,pao2_first, paco2_first, pH_first, basedeficit_first, baseexcess_first, peep_first, basedeficit_min_24, peep_min24, basedeficit_min_48, peep_min_48,basedeficit_max_24, peep_max24, basedeficit_max_48, peep_max_48, albumin_first, bilirubin_first, wbc_first, platelets_first,ua_adm,
+
+# we don't want to impute categorical variables
+aki, AKIstage
+)
+)
+
+# Final replacement
+
+df_me_selected_imputed[,names(keep.origninal)] <- keep.origninal
+```
+
+## Multiple imputation
+
+The following code has not been finished yet:
+
+```{r eval=FALSE, include=FALSE}
+#min and max possible values need to be set per variable.
+bds <- matrix(c(7, 0, 100), nrow = 1, ncol = 3)# we need a matrix of bounds(number of column to bound, min, max)
+relevant_data_imputation_matrix<-amelia(df_me_selected, parallel = "multicore",idvars = 'Case_Name',noms = c('Gender','Category','Q_AUT50MAP_total_min','Q_AUT65MAP_total_min','Q_AOT65MAP_total_min','Q_total_pressors_formula_mg')
+                               #, ords = #Ords is only for ingegers, not floats
+                               ,bounds = bds
+                               )
+FinalHemodynamicsDataset<-df_me_selected$imputations$imp5
+names(df_me_selected)[names(df_me_selected)=="STS_RiskAlgorithm"]<-"STS_RiskAlgorithm_multiple_imp"
+summary(df_me_selected$STS_RiskAlgorithm_multiple_imp)
+#STS risk cannot be negative
+# to avoid problems when using log
+#there can not be 0 values in a log(variable) in a logreg
+```
+
+# Dataset report
+
+```{r}
+view(dfSummary(df_me_selected_imputed))
 ```
 

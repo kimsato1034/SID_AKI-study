@@ -19,7 +19,7 @@ library(caret)
 # Creating de-identified id
 
 ```{r}
-df_me_selected['id']<- seq.int(nrow(df_me_selected))
+df_me_selected_imputed['id']<- seq.int(nrow(df_me_selected_imputed))
 ```
 
 # Spliting de-identified data into testing and training, balanced version.
@@ -31,9 +31,9 @@ We want the data to be sampled randomly but always the same way and we want to b
 set.seed(123)
 # createDataPartition: "the random sampling is done within the levels of y when y is a factor in an attempt to balance the class distributions within the splits."
 ## 75% of the sample size
-train_idx <- createDataPartition(as.factor(df_me_selected$aki), times = 1, p = 0.75, list=F)
-train <- df_me_selected[train_idx, ]
-test <- df_me_selected[-train_idx, ]
+train_idx <- createDataPartition(as.factor(df_me_selected_imputed$aki), times = 1, p = 0.75, list=F)
+train <- df_me_selected_imputed[train_idx, ]
+test <- df_me_selected_imputed[-train_idx, ]
 round(prop.table(table(train$aki)),2)
 round(prop.table(table(test$aki)),2)
 ```
