@@ -11,7 +11,7 @@ SELECT
 , fio2 AS fio2_first
 ,ROW_NUMBER() OVER (PARTITION BY patientunitstayid ORDER BY chartoffset ASC) AS rn
 FROM `physionet-data.eicu_crd_derived.pivoted_bg` 
-WHERE chartoffset BETWEEN -6*24 AND 24*60  
+WHERE chartoffset BETWEEN -6*24 AND 24*60 
 ), pao2_first_sq AS(
 SELECT
   patientunitstayid
@@ -60,17 +60,17 @@ SELECT
 , peep AS peep_first
 ,ROW_NUMBER() OVER (PARTITION BY patientunitstayid ORDER BY chartoffset ASC) AS rn
 FROM `physionet-data.eicu_crd_derived.pivoted_bg` 
-WHERE chartoffset BETWEEN -6*24 AND 24*60  
+WHERE chartoffset BETWEEN -6*24 AND 24*60   
 )
 SELECT patientunitstayid
-,fio2_first
+,CASE WHEN peep_first IS NOT NULL THEN fio2_first END AS fio2_first --only using fio2 values when aligned with peep values
 ,pao2_first
 ,paco2_first
 ,pH_first
 ,aniongap_first
 ,basedeficit_first
 ,baseexcess_first
-,peep_first
+,CASE WHEN fio2_first IS NOT NULL THEN peep_first END AS peep_first --only using fio2 values when aligned with peep values
 FROM unique_icustays
 LEFT JOIN
 fio2_first_sq
