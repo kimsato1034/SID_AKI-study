@@ -19,6 +19,8 @@ library(caret)
 # Creating de-identified id
 
 ```{r}
+df_me_selected_imputed<-df_me_selected_imputed%>%filter(!is.na(aki))%>%select(-one_of (c('AKIstage') ))
+
 df_me_selected_imputed['id']<- seq.int(nrow(df_me_selected_imputed))
 ```
 
