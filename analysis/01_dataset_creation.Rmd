@@ -228,6 +228,7 @@ AKIlist_final$rrt_bin<-NULL
 admission_vars<-run_query(getSQL("sql/admission_vars.sql"))
 mean_first_day<-run_query(getSQL("sql/mean_first_day.sql"))
 total_na_cl_volume_day1<-run_query(getSQL("sql/total_na_cl_volume_day1.sql"))
+intake_day1_missing_explain<-run_query(getSQL("sql/intake_day1_missing_explain.sql"))
 ```
 
 # Merging all datasets
@@ -263,6 +264,7 @@ sid_aki_study<-Reduce(function(...) merge(..., all.x=TRUE), list(
 , admission_vars
 , mean_first_day
 , total_na_cl_volume_day1
+, intake_day1_missing_explain
 ))
 
 #cat(names(sid_aki_study),sep = '\n')
