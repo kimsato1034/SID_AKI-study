@@ -6,15 +6,12 @@ WITH
     SELECT
       patientunitstayid
       -- all of the below weights are measured in kg
-      ,
-      CAST(nursingchartvalue AS NUMERIC) AS weight
+      ,  CAST(nursingchartvalue AS NUMERIC) AS weight
     FROM
       `physionet-data.eicu_crd.nursecharting`
     WHERE
       nursingchartcelltypecat = 'Other Vital Signs and Infusions'
-      AND nursingchartcelltypevallabel IN ( 'Admission Weight',
-        'Admit weight',
-        'WEIGHT in Kg' )
+      AND nursingchartcelltypevallabel IN ( 'Admission Weight', 'Admit weight', 'WEIGHT in Kg' )
       -- ensure that nursingchartvalue is numeric
       AND REGEXP_CONTAINS(nursingchartvalue, '^([0-9]+\\.?[0-9]*|\\.[0-9]+)$')
       AND NURSINGCHARTOFFSET >= -60
@@ -35,8 +32,7 @@ WITH
       -- there are ~300 extra (lb) measurements, so we include both
       -- worth considering that this biases the median of all three tables towards these values..
     WHERE
-      CELLPATH IN ( 'flowsheet|Flowsheet Cell Labels|I&O|Weight|Bodyweight (kg)',
-        'flowsheet|Flowsheet Cell Labels|I&O|Weight|Bodyweight (lb)' )
+      CELLPATH IN ( 'flowsheet|Flowsheet Cell Labels|I&O|Weight|Bodyweight (kg)', 'flowsheet|Flowsheet Cell Labels|I&O|Weight|Bodyweight (lb)' )
       AND INTAKEOUTPUTOFFSET >= -60
       AND INTAKEOUTPUTOFFSET < 60*24 )
     -- weight from infusiondrug
@@ -125,6 +121,9 @@ SELECT
   demographics.gender,
   apacheadmissiondx,
   ethnicity, 
+  hospitalid,
+  wardid,
+  hospitaldischargeyear,
   unitadmitsource,
   weight_avg AS weight,
   height,
@@ -132,8 +131,7 @@ SELECT
   -- categorizes BMI values into categories
   CASE
     WHEN BMI < 18 THEN "underweight"
-    WHEN BMI >= 18
-  AND BMI < 25 THEN "normal"
+    WHEN BMI >= 18 AND BMI < 25 THEN "normal"
     WHEN BMI >= 25 THEN "overweight"
     WHEN BMI >= 30 THEN "obese"
   ELSE

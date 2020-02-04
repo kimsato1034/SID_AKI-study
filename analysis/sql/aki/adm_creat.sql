@@ -11,11 +11,11 @@ WITH tempo AS
            ROW_NUMBER() OVER (PARTITION BY patientunitstayid, labname ORDER BY labresultoffset ASC) AS POSITION
    FROM `physionet-data.eicu_crd.lab`
    WHERE ((labname) = 'creatinine')
-     AND labresultoffset BETWEEN -902460 AND -12*60 -- first creat available 
+     AND labresultoffset BETWEEN -12*60 AND 12*60 -- first creat available 
      ORDER BY patientunitstayid, labresultoffset )
 SELECT patientunitstayid,
-       MAX(CASE WHEN (labname) = 'creatinine' AND POSITION =1 THEN labresult ELSE NULL END) AS creat_baseline,
-       MAX(CASE WHEN (labname) = 'creatinine' AND POSITION =1 THEN labresultoffset ELSE NULL END) AS creat_baseline_offset
+       MAX(CASE WHEN (labname) = 'creatinine' AND POSITION =1 THEN labresult ELSE NULL END) AS creat_adm,
+       MAX(CASE WHEN (labname) = 'creatinine' AND POSITION =1 THEN labresultoffset ELSE NULL END) AS creat_adm_offset
 FROM tempo
 GROUP BY patientunitstayid
 ORDER BY patientunitstayid
