@@ -30,7 +30,8 @@ FROM
   all_data
 GROUP BY
   patientunitstayid,
-  labresultoffset),
+  labresultoffset
+HAVING MAX(sodium) IS NOT NULL AND MAX(chloride) IS NOT NULL),
 max_per_unitid AS(
 SELECT
   patientunitstayid,

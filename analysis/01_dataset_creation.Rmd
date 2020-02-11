@@ -5,15 +5,16 @@ date: "2/20/2019"
 output: html_document
 ---
 
-# Libraries
+# Environment
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 library(bigrquery)
 library(summarytools)
 library(readr)
 library(stringr)
 library(sqldf)
 library(dplyr)
+library(readxl)
 ```
 
 
@@ -65,11 +66,16 @@ Loads all queries from the sql files in the extraction folder and runs them into
 #cat(list.files('sql'), sep = '\n')
 
 # AKI related variables
-baseline_creat<-run_query(getSQL("sql/aki/baseline_creat.sql"))
+before_adm_creat<-run_query(getSQL("sql/aki/before_adm_creat.sql"))
+adm_creat<-run_query(getSQL("sql/aki/adm_creat.sql"))
 chronicAKI<-run_query(getSQL("sql/aki/chronicAKI.sql"))
 first_rrt<-run_query(getSQL("sql/aki/first_rrt.sql"))
 peakcreat48h<-run_query(getSQL("sql/aki/peakcreat48h.sql"))
 peakcreat7days<-run_query(getSQL("sql/aki/peakcreat7days.sql"))
+
+dialysis<-run_query(getSQL("sql/aki/dialysis.sql"))
+dialysis_first7days<-run_query(getSQL("sql/aki/dialysis_first7days.sql"))
+
 
 # rest of the variables
 bg_24_48<-run_query(getSQL("sql/bg_24_48.sql"))
@@ -79,6 +85,7 @@ lab_24_48<-run_query(getSQL("sql/lab_24_48.sql"))
 lab_first<-run_query(getSQL("sql/lab_first.sql"))
 outcomes<-run_query(getSQL("sql/outcomes.sql"))
 pasthistory<-run_query(getSQL("sql/pasthistory.sql"))
+sid_first<-run_query(getSQL("sql/sid_first.sql"))
 sid_24_48<-run_query(getSQL("sql/sid_24_48.sql"))
 sid_twa_24<-run_query(getSQL("sql/sid_twa_24.sql"))
 sid_twa_48<-run_query(getSQL("sql/sid_twa_48.sql"))
@@ -88,6 +95,8 @@ urine_output_24_48<-run_query(getSQL("sql/urine_output_24_48.sql"))
 vent_bin_first_2days<-run_query(getSQL("sql/vent_bin_first_2days.sql"))
 vitals_day1<-run_query(getSQL("sql/vitals_day1.sql"))
 vitals_day2<-run_query(getSQL("sql/vitals_day2.sql"))
+
+
 ```
 
 ## AKI Dataset creation
@@ -229,6 +238,8 @@ admission_vars<-run_query(getSQL("sql/admission_vars.sql"))
 mean_first_day<-run_query(getSQL("sql/mean_first_day.sql"))
 total_na_cl_volume_day1<-run_query(getSQL("sql/total_na_cl_volume_day1.sql"))
 intake_day1_missing_explain<-run_query(getSQL("sql/intake_day1_missing_explain.sql"))
+reliable_fluids_data<-run_query(getSQL("sql/all_reliable.sql"))
+
 ```
 
 # Merging all datasets
@@ -236,9 +247,12 @@ intake_day1_missing_explain<-run_query(getSQL("sql/intake_day1_missing_explain.s
 We are using a left join to join them
 
 ```{r}
+# Exclude non reliable data ICU-year
+sid_aki_study<-inner_join(demographics,reliable_fluids_data)
+
 # left join = all.x=TRUE
 sid_aki_study<-Reduce(function(...) merge(..., all.x=TRUE), list(
-  demographics
+  sid_aki_study
 , bg_first
 , bg_24_48
 , lab_first
@@ -255,7 +269,9 @@ sid_aki_study<-Reduce(function(...) merge(..., all.x=TRUE), list(
 , vent_bin_first_2days
 , vitals_day1
 , vitals_day2
-, baseline_creat
+# aki vars
+, before_adm_creat
+, adm_creat
 , chronicAKI
 , first_rrt
 , peakcreat48h
@@ -265,10 +281,29 @@ sid_aki_study<-Reduce(function(...) merge(..., all.x=TRUE), list(
 , mean_first_day
 , total_na_cl_volume_day1
 , intake_day1_missing_explain
+, dialysis_first7days
+
 ))
+
 
 #cat(names(sid_aki_study),sep = '\n')
 ```
+
+According to the attached file, we have 12,551 patients with fluid data after inclusion and exclusion criteria were applied.
+
+
+If fluid data=NA, appears_in_intakeoutput=0, receives_intake_atsomepoint=0, then I think those are missing value (n=680).
+
+If fluid data=NA, appears_in_intakeoutput=1; receives_intake_atsomepoint=0, then I guess those patients took no fluid intake (n=4,733).  ← That could be too many...
+
+
+If fluid data=NA, appears_in_intakeoutput=1, receives_intake_atsomepoint=1, I do not know if those are missing value or from our mistake (n=13,568). The number of patients are too many, so we should check further. In other words, we could miss important fluids in this table.
+https://docs.google.com/spreadsheets/d/17BtBk7zkSqgUxGriTbJtJt0VrFKpnBQxLVyywR_iHKM/edit#gid=100723980  
+
+Please look at those 13,568 patients and check if there are some variables that have large amount of cellvaluenumeric, let's say, more than 500 ml. That could be important fluid that we missed. If you find that kind of data, please send them to me.
+
+Best,
+
 
 # Dataset report
 
@@ -280,7 +315,7 @@ view(dfSummary())
 # Export dataset
 
 ```{r}
-#write.csv(sid_aki_study,'sid_aki_study.csv',row.names = F)
+write.csv(sid_aki_study,'sid_aki_study.csv',row.names = F)
 ```
 
 

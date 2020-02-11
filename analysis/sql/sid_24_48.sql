@@ -51,5 +51,14 @@ patientunitstayid
   , sodium_max_48 - chloride_max_48 AS SID_max_48  
 FROM
   sq
+WHERE   
+  sodium_min_24 IS NOT NULL
+  AND chloride_min_24  IS NOT NULL
+  AND sodium_min_48  IS NOT NULL
+  AND chloride_min_48  IS NOT NULL
+  AND sodium_max_24  IS NOT NULL
+  AND chloride_max_24  IS NOT NULL
+  AND sodium_max_48  IS NOT NULL
+  AND chloride_max_48   IS NOT NULL
 ORDER BY
-  patientunitstayid
+  patientunitstayid  

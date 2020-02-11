@@ -1,0 +1,744 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+
+```{r}
+library(dplyr)
+library(tableone)
+library(psych)
+library(ggplot2)
+library(MASS)
+library(geepack)
+```
+
+```{r}
+#rm(list=ls())
+```
+
+
+# Data wrangling
+
+```{r}
+sid_aki_study_pre<-sid_aki_study
+```
+
+```{r}
+nrow(sid_aki_study_pre)
+# Exclude patients with missing value of predictor because it's MNAR and cannot be imputed.
+sid_aki_study<-sid_aki_study_pre%>%filter(!is.na(sodium_twa_24),!is.na(chloride_twa_24),!is.na(SID_twa_24))
+nrow(sid_aki_study)
+
+# Number of patients exluced for missing value above
+nrow(sid_aki_study_pre)-nrow(sid_aki_study)
+```
+
+
+```{r}
+
+#Exclude CKD, rrt before admision
+df_1<-sid_aki_study%>%
+  filter(creat1<=3)%>%
+  mutate(aki=case_when(.$AKIstage==0~0,.$AKIstage%in%c(1,2,3)~1))%>%
+  mutate(gender=case_when(.$gender=="Female"~0,
+                          .$gender=="Male"~1,
+                          TRUE~as.numeric(NA)),
+         pre_rrt=case_when(.$rrt_bin==1&first_rrtoffset<=0~1,
+                          TRUE~0))%>%filter(pre_rrt==0)
+
+nrow(sid_aki_study)-nrow(df_1) # Number of patients with CKD
+
+df_1$ethnicity[df_1$ethnicity ==""| 
+             df_1$ethnicity == "Native American"|
+             df_1$ethnicity == "Other/Unknow"] <- "Other/Unknown"
+
+df_1$surgery<-NA
+df_1$surgery[df_1$hospitalAdmitSource =="Operating Room"| 
+             df_1$hospitalAdmitSource == "PACU"] <- 1
+df_1$surgery[df_1$hospitalAdmitSource =="Acute Care/Floor"| 
+             df_1$hospitalAdmitSource == "Chest Pain Center"|
+             df_1$hospitalAdmitSource == "Direct Admit"|
+               df_1$hospitalAdmitSource == "Emergency Department"|
+               df_1$hospitalAdmitSource == "Floor"|
+               df_1$hospitalAdmitSource == "ICU"|
+               df_1$hospitalAdmitSource == "ICU to SDU"|
+               df_1$hospitalAdmitSource == "Observation"|
+               df_1$hospitalAdmitSource == "Other"|
+               df_1$hospitalAdmitSource == "Other Hospital"|
+               df_1$hospitalAdmitSource == "Other ICU"|
+               df_1$hospitalAdmitSource == "Recovery Room"|
+               df_1$hospitalAdmitSource == "Step-Down Unit (SDU)"] <- 0
+
+#Categorizing Na, Cl, and SID
+df_2<-df_1%>%mutate(cl_adm_cat=case_when(.$chloride_first<98 ~ 1,
+                              .$chloride_first>=98 & .$chloride_first<=110 ~ 0,
+                              .$chloride_first>110 ~ 2,
+                                TRUE ~ as.numeric(NA)),
+         na_adm_cat=case_when(.$sodium_first>145 ~ 2,
+                                .$sodium_first<=145  & .$sodium_first>=135 ~ 0,
+                                .$sodium_first<135 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         sid_adm_cat=case_when(.$SID_first>37 ~ 2,
+                                .$SID_first<=37  & .$SID_first>=31 ~ 0,
+                                .$SID_first<31 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         
+         # 24 hours variables start here
+         cl_24_min_cat=case_when(.$chloride_min_24<98 ~ 1,
+                              .$chloride_min_24>=98 & .$chloride_min_24<=110 ~ 0,
+                              .$chloride_min_24>110 ~ 2,
+                                TRUE ~ as.numeric(NA)),
+         cl_24_max_cat=case_when(.$chloride_max_24<98 ~ 1,
+                              .$chloride_max_24>=98 & .$chloride_max_24<=110 ~ 0,
+                              .$chloride_max_24>110 ~ 2,
+                                TRUE ~ as.numeric(NA)),
+         na_24_min_cat=case_when(.$sodium_min_24>145 ~ 2,
+                                .$sodium_min_24<=145  & .$sodium_min_24>=135 ~ 0,
+                                .$sodium_min_24<135 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         na_24_max_cat=case_when(.$sodium_max_24>145 ~ 2,
+                                .$sodium_max_24<=145  & .$sodium_max_24>=135 ~ 0,
+                                .$sodium_max_24<135 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         sid_24_min_cat=case_when(.$SID_min_24>37 ~ 2,
+                                .$SID_min_24<=37  & .$SID_min_24>=31 ~ 0,
+                                .$SID_min_24<3 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         sid_24_max_cat=case_when(.$SID_max_24>37 ~ 2,
+                                .$SID_max_24<=37  & .$SID_max_24>=31 ~ 0,
+                                .$SID_max_24<31 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         cl_24_mean_cat=case_when(.$chloride_twa_24<98 ~ 1,
+                              .$chloride_twa_24>=98 & .$chloride_twa_24<=110 ~ 0,
+                              .$chloride_twa_24>110 ~ 2,
+                                TRUE ~ as.numeric(NA)),
+         cl_24_mean_catd=case_when(.$chloride_twa_24>116 ~ 13,
+                                   .$chloride_twa_24>114&.$chloride_twa_24<=116 ~ 12,
+                                   .$chloride_twa_24>112&.$chloride_twa_24<=114 ~ 11,
+                                   .$chloride_twa_24>110&.$chloride_twa_24<=112 ~ 10,
+                                   .$chloride_twa_24>108&.$chloride_twa_24<=110 ~ 9,
+                                   .$chloride_twa_24>106&.$chloride_twa_24<=108 ~ 8,
+                                   .$chloride_twa_24>104&.$chloride_twa_24<=106 ~ 7,
+                                   .$chloride_twa_24>102&.$chloride_twa_24<=104 ~ 6,
+                                   .$chloride_twa_24>100&.$chloride_twa_24<=102 ~ 5,
+                                   .$chloride_twa_24>98&.$chloride_twa_24<=100~ 4,
+                                   .$chloride_twa_24>96&.$chloride_twa_24<=98 ~ 3,
+                                   .$chloride_twa_24>94&.$chloride_twa_24<=96 ~ 2,
+                                   .$chloride_twa_24<=94~1,
+                                   TRUE ~ as.numeric(NA)),
+         na_24_mean_cat=case_when(.$sodium_twa_24>145 ~ 2,
+                                .$sodium_twa_24<=145  & .$sodium_twa_24>=135 ~ 0,
+                                .$sodium_twa_24<135 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         na_24_mean_catd=case_when(.$sodium_twa_24>146 ~ 11,
+                                   .$sodium_twa_24>144&.$sodium_twa_24<=146 ~ 10,
+                                   .$sodium_twa_24>142&.$sodium_twa_24<=144 ~ 9,
+                                   .$sodium_twa_24>140&.$sodium_twa_24<=142 ~ 8,
+                                   .$sodium_twa_24>138&.$sodium_twa_24<=140 ~ 7,
+                                   .$sodium_twa_24>136&.$sodium_twa_24<=138 ~ 6,
+                                   .$sodium_twa_24>134&.$sodium_twa_24<=136 ~ 5,
+                                   .$sodium_twa_24>132&.$sodium_twa_24<=134 ~ 4,
+                                   .$sodium_twa_24>130&.$sodium_twa_24<=132 ~ 3,
+                                   .$chloride_twa_24<=130~1,
+                                   TRUE ~ as.numeric(NA)),
+         sid_24_mean_cat=case_when(.$SID_twa_24>37 ~ 2,
+                                .$SID_twa_24<=37  & .$SID_twa_24>=31 ~ 0,
+                                .$SID_twa_24<31 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         sid_24_mean_catd=case_when(.$SID_twa_24>44 ~ 11,
+                                .$SID_twa_24>42  & .$SID_twa_24<=44 ~ 10,
+                                .$SID_twa_24>40  & .$SID_twa_24<=42 ~ 9,
+                                .$SID_twa_24>38  & .$SID_twa_24<=40 ~ 8,
+                                .$SID_twa_24>36  & .$SID_twa_24<=38 ~ 7,
+                                .$SID_twa_24>34  & .$SID_twa_24<=36 ~ 6,
+                                .$SID_twa_24>32  & .$SID_twa_24<=34 ~ 5,
+                                .$SID_twa_24>30  & .$SID_twa_24<=32 ~ 4,
+                                .$SID_twa_24>28  & .$SID_twa_24<=30 ~ 3,
+                                .$SID_twa_24>26  & .$SID_twa_24<=28 ~ 2,
+                                .$SID_twa_24<=26 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         cl_24_mean_catq=cut(chloride_twa_24,breaks=10,labels=c("1","2","3","4","5","6","7","8","9","10")),
+         delta_cl_d1=chloride_twa_24-chloride_first,
+         delta_na_d1=sodium_twa_24-sodium_first,
+         delta_sid_d1=SID_twa_24-SID_first,
+         
+         # 48 hours variables start here
+          cl_48_min_cat=case_when(.$chloride_min_48<98 ~ 1,
+                              .$chloride_min_48>=98 & .$chloride_min_48<=110 ~ 0,
+                              .$chloride_min_48>110 ~ 2,
+                                TRUE ~ as.numeric(NA)),
+         cl_48_max_cat=case_when(.$chloride_max_48<98 ~ 1,
+                              .$chloride_max_48>=98 & .$chloride_max_48<=110 ~ 0,
+                              .$chloride_max_48>110 ~ 2,
+                                TRUE ~ as.numeric(NA)),
+         na_48_min_cat=case_when(.$sodium_min_48>145 ~ 2,
+                                .$sodium_min_48<=145  & .$sodium_min_48>=135 ~ 0,
+                                .$sodium_min_48<135 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         na_48_max_cat=case_when(.$sodium_max_48>145 ~ 2,
+                                .$sodium_max_48<=145  & .$sodium_max_48>=135 ~ 0,
+                                .$sodium_max_48<135 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         sid_48_min_cat=case_when(.$SID_min_48>37 ~ 2,
+                                .$SID_min_48<=37  & .$SID_min_48>=31 ~ 0,
+                                .$SID_min_48<3 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         sid_48_max_cat=case_when(.$SID_max_48>37 ~ 2,
+                                .$SID_max_48<=37  & .$SID_max_48>=31 ~ 0,
+                                .$SID_max_48<31 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         cl_48_mean_cat=case_when(.$chloride_twa_48<98 ~ 1,
+                              .$chloride_twa_48>=98 & .$chloride_twa_48<=110 ~ 0,
+                              .$chloride_twa_48>110 ~ 2,
+                                TRUE ~ as.numeric(NA)),
+         cl_48_mean_catd=case_when(.$chloride_twa_48>116 ~ 13,
+                                   .$chloride_twa_48>114&.$chloride_twa_48<=116 ~ 12,
+                                   .$chloride_twa_48>112&.$chloride_twa_48<=114 ~ 11,
+                                   .$chloride_twa_48>110&.$chloride_twa_48<=112 ~ 10,
+                                   .$chloride_twa_48>108&.$chloride_twa_48<=110 ~ 9,
+                                   .$chloride_twa_48>106&.$chloride_twa_48<=108 ~ 8,
+                                   .$chloride_twa_48>104&.$chloride_twa_48<=106 ~ 7,
+                                   .$chloride_twa_48>102&.$chloride_twa_48<=104 ~ 6,
+                                   .$chloride_twa_48>100&.$chloride_twa_48<=102 ~ 5,
+                                   .$chloride_twa_48>98&.$chloride_twa_48<=100~ 4,
+                                   .$chloride_twa_48>96&.$chloride_twa_48<=98 ~ 3,
+                                   .$chloride_twa_48>94&.$chloride_twa_48<=96 ~ 2,
+                                   .$chloride_twa_48<=94~1,
+                                   TRUE ~ as.numeric(NA)),
+         na_48_mean_cat=case_when(.$sodium_twa_48>145 ~ 2,
+                                .$sodium_twa_48<=145  & .$sodium_twa_48>=135 ~ 0,
+                                .$sodium_twa_48<135 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         na_48_mean_catd=case_when(.$sodium_twa_48>146 ~ 11,
+                                   .$sodium_twa_48>144&.$sodium_twa_48<=146 ~ 10,
+                                   .$sodium_twa_48>142&.$sodium_twa_48<=144 ~ 9,
+                                   .$sodium_twa_48>140&.$sodium_twa_48<=142 ~ 8,
+                                   .$sodium_twa_48>138&.$sodium_twa_48<=140 ~ 7,
+                                   .$sodium_twa_48>136&.$sodium_twa_48<=138 ~ 6,
+                                   .$sodium_twa_48>134&.$sodium_twa_48<=136 ~ 5,
+                                   .$sodium_twa_48>132&.$sodium_twa_48<=134 ~ 4,
+                                   .$sodium_twa_48>130&.$sodium_twa_48<=132 ~ 3,
+                                   .$chloride_twa_48<=130~1,
+                                   TRUE ~ as.numeric(NA)),
+         sid_48_mean_cat=case_when(.$SID_twa_48>37 ~ 2,
+                                .$SID_twa_48<=37  & .$SID_twa_48>=31 ~ 0,
+                                .$SID_twa_48<31 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         sid_48_mean_catd=case_when(.$SID_twa_48>44 ~ 11,
+                                .$SID_twa_48>42  & .$SID_twa_48<=44 ~ 10,
+                                .$SID_twa_48>40  & .$SID_twa_48<=42 ~ 9,
+                                .$SID_twa_48>38  & .$SID_twa_48<=40 ~ 8,
+                                .$SID_twa_48>36  & .$SID_twa_48<=38 ~ 7,
+                                .$SID_twa_48>34  & .$SID_twa_48<=36 ~ 6,
+                                .$SID_twa_48>32  & .$SID_twa_48<=34 ~ 5,
+                                .$SID_twa_48>30  & .$SID_twa_48<=32 ~ 4,
+                                .$SID_twa_48>28  & .$SID_twa_48<=30 ~ 3,
+                                .$SID_twa_48>26  & .$SID_twa_48<=28 ~ 2,
+                                .$SID_twa_48<=26 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         cl_48_mean_catq=cut(chloride_twa_48,breaks=10,labels=c("1","2","3","4","5","6","7","8","9","10")),
+         delta_cl_d2=chloride_twa_48-chloride_first,
+         delta_na_d2=sodium_twa_48-sodium_first,
+         delta_sid_d2=SID_twa_48-SID_first
+         
+         
+         )%>%
+   mutate_at(c("gender","pasthistory_chf","pasthistory_pvd","pasthistory_hypertension","pasthistory_copd","pasthistory_diabetes","cl_adm_cat","na_adm_cat","sid_adm_cat"
+               
+               ,"cl_24_min_cat","cl_24_max_cat","na_24_min_cat","na_24_max_cat","sid_24_min_cat","sid_24_max_cat","ethnicity","cl_24_mean_cat","na_24_mean_cat","sid_24_mean_cat","surgery","sid_24_mean_catd","cl_24_mean_catd","na_24_mean_catd"
+
+               ,"cl_48_min_cat","cl_48_max_cat","na_48_min_cat","na_48_max_cat","sid_48_min_cat","sid_48_max_cat","cl_48_mean_cat","na_48_mean_cat","sid_48_mean_cat","surgery","sid_48_mean_catd","cl_48_mean_catd","na_48_mean_catd"               
+               ),as.factor)
+
+#Focusing on medical patients
+df_me<-df_2%>%filter(surgery==0)
+
+nrow(df_2)-nrow(df_me) # Number of surgical patients 
+
+
+################################################################
+# Decide if patients with NA did have no fluid or really NA.
+
+# Number of patients with fluid data (n=12551)
+df_me%>%filter(!is.na(total_volume_ml_day1))%>%nrow()
+
+# fluid data=NA; appears_in_intakeoutput=0; receives_intake_atsomepoint=0. This is missing value (n=680)
+df_me%>%filter(is.na(total_volume_ml_day1),df_me$appears_in_intakeoutput==0,receives_intake_atsomepoint==0)%>%nrow()
+
+
+
+# fluid data=NA; appears_in_intakeoutput=0; receives_intake_atsomepoint=0. n=0
+df_me%>%filter(is.na(total_volume_ml_day1),df_me$appears_in_intakeoutput==0,receives_intake_atsomepoint==1)%>%nrow()
+
+# fluid data=NA; appears_in_intakeoutput=1; receives_intake_atsomepoint=1. NA? (n=13568)
+df_me%>%filter(is.na(total_volume_ml_day1),df_me$appears_in_intakeoutput==1,receives_intake_atsomepoint==1)%>%nrow()
+
+# fluid data=NA; appears_in_intakeoutput=1; receives_intake_atsomepoint=0. Maybe zero fluid intake (n=4733)
+df_me%>%filter(is.na(total_volume_ml_day1),df_me$appears_in_intakeoutput==1,receives_intake_atsomepoint==0)%>%nrow()
+df_me$total_volume_ml_day1[is.na(df_me$total_volume_ml_day1) &
+        df_me$appears_in_intakeoutput==1 &
+        df_me$receives_intake_atsomepoint==0]<-0
+
+```
+
+
+```{r}
+
+## Selecting only initially required variables
+#df_me_selected<-df_me%>%select( -one_of (c('apacheadmissiondx' ,'unitadmitsource' ,'BMI_group' ,'unitType' ,'hospitalAdmitSource' ,'hospLOS_prior_ICUadm_days' ,'unitlos_days' ,'hosplos_days' ,'ventdays_days' ,'hospitalmortality' ,'icumortality' ,'urineoutput_total_24' ,'urineoutput_total_48' ,'creat1offset' ,'first_rrtoffset' ,'rrt_bin' ,'peakcreat48h_offset' ,'peakcreat48h' ,'peakcreat7d' ,'peakcreat7d_offset' ,'peakcreat7d_to_discharge_offsetgap'  )) )
+# Included ('cl_adm_cat' ,'na_adm_cat' ,'sid_adm_cat' ,'cl_24_min_cat' ,'cl_24_max_cat' ,'na_24_min_cat' ,'na_24_max_cat' ,'sid_24_min_cat' ,'sid_24_max_cat' ,'cl_24_mean_cat' ,'cl_24_mean_catd' ,'na_24_mean_cat' ,'na_24_mean_catd' ,'sid_24_mean_cat' ,'sid_24_mean_catd' ,'cl_24_mean_catq' ,'delta_cl_d1' ,'delta_na_d1' ,'delta_sid_d1)
+
+# Predictors and outcomes will not be imputed.
+# Only means are used
+df_me_selected<-df_me%>%dplyr::select(patientunitstayid,sodium_min_24,chloride_min_24,sodium_max_24,chloride_max_24,SID_min_24,SID_max_24,sodium_twa_24,chloride_twa_24,SID_twa_24,mechvent_day01,
+glucose_mean_day1,potassium_mean_day1,bicarbonate_mean_day1,albumin_mean_day1,hemoglobin_mean_day1,wbc_mean_day1,platelets_mean_day1,heartrate_mean_day1,systolic_mean_day1,temperature_mean_day1,cl_24_min_cat,cl_24_max_cat,na_24_min_cat ,na_24_max_cat,sid_24_min_cat ,sid_24_max_cat,cl_24_mean_cat,cl_24_mean_catd,na_24_mean_cat,na_24_mean_catd,sid_24_mean_cat,sid_24_mean_catd,cl_24_mean_catq,delta_cl_d1,delta_na_d1,delta_sid_d1,aki,AKIstage,
+ethnicity,age_fixed,gender,weight,height,BMI,pasthistory_chf,pasthistory_pvd,pasthistory_hypertension,pasthistory_copd,pasthistory_diabetes,pasthistory_cld,pasthistory_malignancy,creat1,unitlos_days ,hosplos_days ,ventdays_days,hospitalmortality,icumortality,total_volume_ml_day1,total_na_meq_day1, total_cl_meq_day1
+)%>%mutate(aki=as.factor(aki),mechvent_day01 =as.factor(mechvent_day01 ),icumortality=as.factor(icumortality),hospitalmortality=as.factor(hospitalmortality),pasthistory_malignancy=as.factor(pasthistory_malignancy))
+```
+
+# Imputation on selected variables
+## Mean Imputation
+
+```{r}
+df_me_selected_imputed<-df_me_selected
+
+for(i in 1:ncol(df_me_selected_imputed)){
+  df_me_selected_imputed[is.na(df_me_selected_imputed[,i]), i] <- mean(df_me_selected_imputed[,i], na.rm = TRUE)
+}
+```
+### Studying variables missing values
+
+```{r}
+missing_values<-as.data.frame(sapply(df_me_selected, function(x) round(sum(is.na(x))/length(x),2)))
+names(missing_values)<-'percentage_missing'
+
+toomany_missing<-rownames(subset(missing_values,missing_values$percentage_missing>0.70))
+```
+
+### Final replacement
+
+We are not imputing values listed above, so we replace the imputed columns with the orginal ones
+
+```{r}
+keep.origninal<-dplyr::select(df_me_selected,c(patientunitstayid,
+# MNAR  
+
+# too many missing values
+  #"ventdays_days is one of the outcomes
+# Predictors and outcomes: No? impute them?
+#sodium_min_24,chloride_min_24,sodium_max_24,chloride_max_24,SID_min_24,SID_max_24,sodium_twa_24,chloride_twa_24,SID_twa_24,unitlos_days ,hosplos_days ,ventdays_days,hospitalmortality,icumortality, 
+
+# we don't want to impute categorical variables
+aki,AKIstage
+)
+)
+
+# Final replacement
+
+df_me_selected_imputed[,names(keep.origninal)] <- keep.origninal
+colnames(df_me_selected_imputed)
+
+# Select data without missing value
+#df_me_selected_imputed<-df_me_selected_imputed[!is.na(df_me_selected_imputed$sodium_min_24),]
+#df_me_selected_imputed<-df_me_selected_imputed[!is.na(df_me_selected_imputed$chloride_min_24),]
+#df_me_selected_imputed<-df_me_selected_imputed[!is.na(df_me_selected_imputed$sodium_max_24),]
+#df_me_selected_imputed<-df_me_selected_imputed[!is.na(df_me_selected_imputed$chloride_max_24),]
+#df_me_selected_imputed<-df_me_selected_imputed[!is.na(df_me_selected_imputed$SID_min_24),]
+#df_me_selected_imputed<-df_me_selected_imputed[!is.na(df_me_selected_imputed$SID_max_24),]
+#df_me_selected_imputed<-df_me_selected_imputed[!is.na(df_me_selected_imputed$sodium_twa_24),]
+#df_me_selected_imputed<-df_me_selected_imputed[!is.na(df_me_selected_imputed$chloride_twa_24),]
+#df_me_selected_imputed<-df_me_selected_imputed[!is.na(df_me_selected_imputed$SID_twa_24),]
+```
+
+```{r}
+# Create new categories
+df_me_selected_imputed$sid_24_mean_catd2<-df_me_selected_imputed$sid_24_mean_catd
+df_me_selected_imputed$sid_24_mean_catd2[df_me_selected_imputed$sid_24_mean_catd==11]<-10
+class(df_me_selected_imputed$sid_24_mean_catd2)
+
+df_me_selected_imputed$cl_24_mean_catd2<-df_me_selected_imputed$cl_24_mean_catd
+df_me_selected_imputed$cl_24_mean_catd2[df_me_selected_imputed$cl_24_mean_catd2==13]<-12
+df_me_selected_imputed$cl_24_mean_catd2[df_me_selected_imputed$cl_24_mean_catd2==1]<-2
+
+df_me_selected_imputed<-df_me_selected_imputed%>% droplevels()
+
+df_me_selected_imputed<-df_me_selected_imputed%>%
+  mutate(cl_24_mean_catd3=case_when(.$cl_24_mean_catd==1|.$cl_24_mean_catd==2|.$cl_24_mean_catd==3~1,.$cl_24_mean_catd==4|.$cl_24_mean_catd==5|.$cl_24_mean_catd==6~2,.$cl_24_mean_catd==7|.$cl_24_mean_catd==8|.$cl_24_mean_catd==9~3,.$cl_24_mean_catd==10|.$cl_24_mean_catd==11|.$cl_24_mean_catd==12|.$cl_24_mean_catd==13~4),
+         na_24_mean_catd3=case_when(.$na_24_mean_catd==1|.$na_24_mean_catd==3|.$na_24_mean_catd==4~1,.$na_24_mean_catd==5|.$na_24_mean_catd==6~2,.$na_24_mean_catd==7|.$na_24_mean_catd==8~3,.$na_24_mean_catd==9|.$na_24_mean_catd==10|.$na_24_mean_catd==11~4))%>%mutate(cl_24_mean_catd3=as.factor(cl_24_mean_catd3),na_24_mean_catd3=as.factor(na_24_mean_catd3))
+
+
+df_me_selected_imputed<-df_me_selected_imputed%>%
+  mutate(sid_24_mean_cat2=case_when(.$SID_twa_24>36 ~ 2,
+                                .$SID_twa_24<=36  & .$SID_twa_24>=30 ~ 0,
+                                .$SID_twa_24<30 ~ 1,
+                                TRUE ~ as.numeric(NA)))%>%
+  mutate(sid_24_mean_cat2=as.factor(sid_24_mean_cat2))
+```
+
+
+```{r}
+df_me_selected_imputed%>%ggplot()+
+  geom_histogram(aes(sid_24_mean_catd),stat="count")+scale_x_discrete(labels=c("-26","26-28","28-30","30-32","32-34","34-36","36-38","38-40","40-42","42-44","44-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10))
+
+df_me_selected_imputed%>%ggplot()+
+  geom_histogram(aes(na_24_mean_catd),stat="count")+scale_x_discrete(labels=c("-130","130-132","132-134","134-136","136-138","138-140","140-142","142-144","144-146","146-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10))
+
+df_me_selected_imputed%>%ggplot()+
+  geom_histogram(aes(cl_24_mean_catd),stat="count")+scale_x_discrete(labels=c("-94","94-96","96-98","98-100","100-102","102-104","104-106","106-108","108-110","110-112","112-114","114-116","116-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10))
+```
+
+
+```{r}
+# Patients' characteristics
+# Sample size
+nrow(df_me_selected_imputed)
+summary(df_me_selected_imputed)
+describe(df_me_selected_imputed$age_fixed)
+describe(df_me_selected_imputed$weight)
+describe(df_me_selected_imputed$total_volume_ml_day1)
+summary(df_me_selected_imputed$total_volume_ml_day1)
+
+#SID, Na, and Cl
+summary(df_me_selected_imputed$sid_24_mean_cat2)
+prop.table(summary(df_me_selected_imputed$sid_24_mean_cat2))
+summary(df_me_selected_imputed$na_24_mean_cat)
+prop.table(summary(df_me_selected_imputed$na_24_mean_cat))
+summary(df_me_selected_imputed$cl_24_mean_cat)
+prop.table(summary(df_me_selected_imputed$cl_24_mean_cat))
+
+# AKI
+summary(df_me_selected_imputed$aki)
+prop.table(summary(df_me_selected_imputed$aki))
+df_me_selected_imputed%>% mutate(AKIstage=as.factor(AKIstage))%>%dplyr::select(AKIstage)%>%summary()
+
+# Mortality
+summary(df_me_selected_imputed$icumortality)
+prop.table(summary(df_me_selected_imputed$icumortality))
+
+summary(df_me_selected_imputed$hospitalmortality)
+prop.table(summary(df_me_selected_imputed$hospitalmortality))
+
+
+# Table one: base
+table<-CreateTableOne(vars=c("age_fixed","gender","weight","ethnicity","pasthistory_chf","pasthistory_pvd","pasthistory_hypertension","pasthistory_copd","pasthistory_diabetes","pasthistory_malignancy","creat1"),strata="sid_24_mean_cat2",data=df_me_selected_imputed)
+
+try <- print(table, exact = "ascites", quote = FALSE)
+write.csv(try, file = "table.csv")
+
+
+# Table one: Characteristics
+table<-CreateTableOne(vars=c("SID_twa_24","sodium_twa_24","chloride_twa_24","heartrate_mean_day1","systolic_mean_day1","temperature_mean_day1",
+"glucose_mean_day1","potassium_mean_day1","albumin_mean_day1","hemoglobin_mean_day1","wbc_mean_day1","platelets_mean_day1","mechvent_day01"),strata="sid_24_mean_cat2",data=df_me_selected_imputed)
+try <- print(table, exact = "ascites", quote = FALSE)
+write.csv(try, file = "table.csv")
+
+# Table one: Outcome
+table<-CreateTableOne(vars=c("aki","AKIstage","icumortality",'hospitalmortality','unitlos_days' ,'hosplos_days'),strata="sid_24_mean_cat2",data=df_me_selected_imputed)
+try <- print(table, exact = "ascites", quote = FALSE)
+write.csv(try, file = "table.csv")
+
+colnames(df_me_selected_imputed)
+```
+
+
+
+
+# Univariable analyses
+## AKI
+```{r}
+df_me_selected_imputed<-df_me_selected_imputed%>%mutate(aki=as.numeric(as.character(aki)))
+#SID
+df_me_selected_imputed%>%filter(!is.na(aki),!is.na(sid_24_mean_catd))%>%group_by(sid_24_mean_catd)%>%summarize(aki_incidence=sum(aki)/n()*100)%>%ggplot()+
+  geom_bar(aes(x=sid_24_mean_catd,y=aki_incidence),width=0.8,stat="identity")+
+  scale_x_discrete(labels=c("-26","26-28","28-30","30-32","32-34","34-36","36-38","38-40","40-42","42-44","44-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10))+
+  xlab(expression(paste(SID[ave]," (mEq/L)")))+
+  ylab(label="AKI incidence (%)")
+
+#SID for new categories
+df_me_selected_imputed%>%filter(!is.na(aki),!is.na(sid_24_mean_catd2))%>%group_by(sid_24_mean_catd2)%>%summarize(aki_incidence=sum(aki)/n()*100)
+
+df_me_selected_imputed%>%filter(!is.na(aki),!is.na(sid_24_mean_catd2))%>%group_by(sid_24_mean_catd2)%>%summarize(aki_incidence=sum(aki)/n()*100)%>%ggplot()+
+  geom_bar(aes(x=sid_24_mean_catd2,y=aki_incidence),width=0.8,stat="identity")+
+  scale_x_discrete(labels=c("-26","26-28","28-30","30-32","32-34","34-36","36-38","38-40","40-42","42-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10))+
+  xlab(expression(paste(SID[ave]," (mEq/L)")))+
+  ylab(label="AKI incidence (%)")
+
+
+#Cl
+df_me_selected_imputed%>%filter(!is.na(aki),!is.na(cl_24_mean_catd))%>%group_by(cl_24_mean_catd)%>%summarize(aki_incidence=sum(aki)/n()*100)%>%ggplot()+geom_bar(aes(x=cl_24_mean_catd,y=aki_incidence),width=0.8,stat="identity")+scale_x_discrete(labels=c("-94","94-96","96-98","98-100","100-102","102-104","104-106","106-108","108-110","110-112","112-114","114-116","116-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10))+xlab(expression(paste("Cl"^"-"," (mEq/L)")))+ ylab(label="AKI incidence (%)")
+
+#Cl for new categories
+df_me_selected_imputed%>%filter(!is.na(aki),!is.na(cl_24_mean_catd2))%>%group_by(cl_24_mean_catd2)%>%summarize(aki_incidence=sum(aki)/n()*100)
+
+df_me_selected_imputed%>%filter(!is.na(aki),!is.na(cl_24_mean_catd2))%>%group_by(cl_24_mean_catd2)%>%summarize(aki_incidence=sum(aki)/n()*100)%>%ggplot()+geom_bar(aes(x=cl_24_mean_catd2,y=aki_incidence),width=0.8,stat="identity")+scale_x_discrete(labels=c("-96","96-98","98-100","100-102","102-104","104-106","106-108","108-110","110-112","112-114","114-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10))+xlab(expression(paste("Cl"^"-"," (mEq/L)")))+ ylab(label="AKI incidence (%)")
+
+summary(df_me_selected_imputed$cl_24_mean_catd)
+
+#Na
+df_me_selected_imputed%>%filter(!is.na(aki),!is.na(na_24_mean_catd))%>%group_by(na_24_mean_catd)%>%summarize(aki_incidence=sum(aki)/n()*100)%>%ggplot()+geom_bar(aes(x=na_24_mean_catd,y=aki_incidence),width=0.8,stat="identity")+scale_x_discrete(labels=c("-130","130-132","132-134","134-136","136-138","138-140","140-142","142-144","144-146","146-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10))+xlab(expression(paste("Na"^"+"," (mEq/L)")))+ ylab(label="AKI incidence (%)")
+```
+
+## Morality
+```{r}
+df_me_selected_imputed<-df_me_selected_imputed%>%mutate(icumortality=as.numeric(as.character(icumortality)))
+#SID
+df_me_selected_imputed%>%filter(!is.na(icumortality),!is.na(sid_24_mean_catd))%>%group_by(sid_24_mean_catd)%>%summarize(icumortality_incidence=sum(icumortality)/n()*100)%>%ggplot()+
+  geom_bar(aes(x=sid_24_mean_catd,y=icumortality_incidence),width=0.8,stat="identity")+
+  scale_x_discrete(labels=c("-26","26-28","28-30","30-32","32-34","34-36","36-38","38-40","40-42","42-44","44-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10))+
+  xlab(expression(paste(SID[ave]," (mEq/L)")))+
+  ylab(label="ICU mortality (%)")
+
+#SID for new categories
+df_me_selected_imputed%>%filter(!is.na(icumortality),!is.na(sid_24_mean_catd2))%>%group_by(sid_24_mean_catd2)%>%summarize(icumortality_incidence=sum(icumortality)/n()*100)%>%ggplot()+
+  geom_bar(aes(x=sid_24_mean_catd2,y=icumortality_incidence),width=0.8,stat="identity")+
+  scale_x_discrete(labels=c("-26","26-28","28-30","30-32","32-34","34-36","36-38","38-40","40-42","42-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10))+
+  xlab(expression(paste(SID[ave]," (mEq/L)")))+
+  ylab(label="ICU mortality (%)")
+
+#Cl
+df_me_selected_imputed%>%filter(!is.na(icumortality),!is.na(cl_24_mean_catd))%>%group_by(cl_24_mean_catd)%>%summarize(icumortality_incidence=sum(icumortality)/n()*100)%>%ggplot()+geom_bar(aes(x=cl_24_mean_catd,y=icumortality_incidence),width=0.8,stat="identity")+scale_x_discrete(labels=c("-94","94-96","96-98","98-100","100-102","102-104","104-106","106-108","108-110","110-112","112-114","114-116","116-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10))+xlab(expression(paste("Cl"^"-"," (mEq/L)")))+ ylab(label="ICU mortality (%)")
+
+#Cl for new catetoriew
+df_me_selected_imputed%>%filter(!is.na(icumortality),!is.na(cl_24_mean_catd2))%>%group_by(cl_24_mean_catd2)%>%summarize(icumortality_incidence=sum(icumortality)/n()*100)%>%ggplot()+geom_bar(aes(x=cl_24_mean_catd2,y=icumortality_incidence),width=0.8,stat="identity")+scale_x_discrete(labels=c("-96","96-98","98-100","100-102","102-104","104-106","106-108","108-110","110-112","112-114","114-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10))+xlab(expression(paste("Cl"^"-"," (mEq/L)")))+ ylab(label="ICU mortality (%)")
+
+#Na
+df_me_selected_imputed%>%filter(!is.na(icumortality),!is.na(na_24_mean_catd))%>%group_by(na_24_mean_catd)%>%summarize(icumortality_incidence=sum(icumortality)/n()*100)%>%ggplot()+geom_bar(aes(x=na_24_mean_catd,y=icumortality_incidence),width=0.8,stat="identity")+scale_x_discrete(labels=c("-130","130-132","132-134","134-136","136-138","138-140","140-142","142-144","144-146","146-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10))+xlab(expression(paste("Na"^"+"," (mEq/L)")))+ ylab(label="ICU mortality (%)")
+```
+
+
+
+# Multivariable regression
+## AKI
+### Without IPW
+```{r}
+# SID and Cl for new categories (cl_24_mean_catd,base=8 equals to cl_24_mean_catd2,base=7) without bicarbonate, without IPW
+model<-glm(aki~C(sid_24_mean_catd2,base=5)+C(cl_24_mean_catd2,base=7)+
+age_fixed+gender+weight+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+creat1+
+  heartrate_mean_day1+systolic_mean_day1+temperature_mean_day1+
+  glucose_mean_day1+potassium_mean_day1+albumin_mean_day1+hemoglobin_mean_day1+wbc_mean_day1+platelets_mean_day1+mechvent_day01+total_volume_ml_day1+total_na_meq_day1+total_cl_meq_day1,data=df_me_selected_imputed,family="binomial")
+summary(model)
+#try<-as.data.frame(summary(model)%>%coef())%>%round(3)
+#write.csv(try, file = "table.csv")
+#table<-exp(cbind(OR=coef(model), confint.default(model)))%>%round(2)
+#try<-print(table, exact = "ascites", quote = FALSE)
+#write.csv(try, file = "table.csv")
+```
+
+### IPW
+```{r}
+# SID and Cl for new categories without bicarbonate, with IPW
+# "aki" is outcome with missing value
+# Both "sid_24_mean_catd2" and "cl_24_mean_catd2" are categorical predictors of interest
+# Others are covariates, which could be confounders
+# We would like to assess the association between sid_24_mean_catd2" & "cl_24_mean_catd2" and "aki, using IPW to avoid selection bias
+# Create censoring variable
+df_me_selected_imputed$cens<-as.numeric(is.na(df_me_selected_imputed$aki))
+
+# Calculate denominotor of IPW for selection bias
+denom.cens <- glm(cens ~C(sid_24_mean_catd2,base=5)+C(cl_24_mean_catd2,base=7)+
+age_fixed+gender+weight+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+creat1+
+  heartrate_mean_day1+systolic_mean_day1+temperature_mean_day1+
+  glucose_mean_day1+potassium_mean_day1+albumin_mean_day1+hemoglobin_mean_day1+wbc_mean_day1+platelets_mean_day1+mechvent_day01+total_volume_ml_day1+total_na_meq_day1+total_cl_meq_day1,family="binomial", data = df_me_selected_imputed)
+
+pd.cens <- 1-predict(denom.cens, df_me_selected_imputed, type = "response")
+
+# Calculate numerator of IPW for selection bias
+numer.cens <- glm(cens~C(sid_24_mean_catd2,base=5)+C(cl_24_mean_catd2,base=7), family = binomial(), data = df_me_selected_imputed)
+pn.cens <- 1-predict(numer.cens, df_me_selected_imputed, type = "response")
+df_me_selected_imputed$sw.c <- pn.cens/pd.cens
+
+# Final model
+model <- geeglm(aki ~ C(sid_24_mean_catd2,base=5)+C(cl_24_mean_catd2,base=7)+
+age_fixed+gender+weight+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+creat1+
+  heartrate_mean_day1+systolic_mean_day1+temperature_mean_day1+
+  glucose_mean_day1+potassium_mean_day1+albumin_mean_day1+hemoglobin_mean_day1+wbc_mean_day1+platelets_mean_day1+mechvent_day01+total_volume_ml_day1+total_na_meq_day1+total_cl_meq_day1, data=df_me_selected_imputed, weights=sw.c, id=patientunitstayid,corstr="independence",family= binomial(link = "logit"))
+
+summary(model)
+try<-as.data.frame(summary(model)%>%coef())%>%round(3)
+write.csv(try, file = "table.csv")
+OR<-exp(coef(model))
+SE <- coef(summary(model))[,2]
+LCI<-exp(coef(model)-qnorm(0.975)*SE)
+UCI<-exp(coef(model)+qnorm(0.975)*SE)
+try<-cbind(OR, LCI, UCI)%>%round(2)
+write.csv(try, file = "table.csv")
+```
+
+
+```{r}
+# Only means are used
+#model<-glm(aki~C(sid_24_mean_catd,base=5)+C(cl_24_mean_catd,base=8)+C(na_24_mean_catd,base=7)+
+#age_fixed+gender+weight+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+creat1+
+#  heartrate_mean_day1+systolic_mean_day1+temperature_mean_day1+
+#  glucose_mean_day1+potassium_mean_day1+bicarbonate_mean_day1+albumin_mean_day1+hemoglobin_mean_day1+wbc_mean_day1+platelets_mean_day1+mechvent_day01+total_volume_ml_day1+total_na_meq_day1+total_cl_meq_day1,data=df_me_selected_imputed,family="binomial")
+#try<-as.data.frame(summary(model)%>%coef())%>%round(3)
+#table<-exp(cbind(OR=coef(model), confint.default(model)))%>%round(2)
+#try <- print(table, exact = "ascites", quote = FALSE)
+#write.csv(try, file = "table.csv")
+
+# SID and Cl (old cat)
+#model<-glm(aki~C(sid_24_mean_catd,base=5)+C(cl_24_mean_catd,base=8)+
+#age_fixed+gender+weight+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+creat1+
+#  heartrate_mean_day1+systolic_mean_day1+temperature_mean_day1+
+#  glucose_mean_day1+potassium_mean_day1+bicarbonate_mean_day1+albumin_mean_day1+hemoglobin_mean_day1+wbc_mean_day1+platelets_mean_day1+mechvent_day01+total_volume_ml_day1+total_na_meq_day1+total_cl_meq_day1,data=df_me_selected_imputed,family="binomial")
+#summary(model)
+#try<-as.data.frame(summary(model)%>%coef())%>%round(3)
+#table<-exp(cbind(OR=coef(model), confint.default(model)))%>%round(2)
+#print(table, exact = "ascites", quote = FALSE)
+
+# SID and Cl for new categories (cl_24_mean_catd,base=8 equals to cl_24_mean_catd2,base=7)
+#model<-glm(aki~C(sid_24_mean_catd2,base=5)+C(cl_24_mean_catd2,base=7)+
+#age_fixed+gender+weight+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+creat1+
+#  heartrate_mean_day1+systolic_mean_day1+temperature_mean_day1+
+#  glucose_mean_day1+potassium_mean_day1+bicarbonate_mean_day1+albumin_mean_day1+hemoglobin_mean_day1+wbc_mean_day1+platelets_mean_day1+mechvent_day01+total_volume_ml_day1+total_na_meq_day1+total_cl_meq_day1,data=df_me_selected_imputed,family="binomial")
+#summary(model)
+
+# Na and Cl
+#model<-glm(aki~C(cl_24_mean_catd,base=8)+C(na_24_mean_catd,base=7)+
+#age_fixed+gender+weight+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+creat1+
+#  heartrate_mean_day1+systolic_mean_day1+temperature_mean_day1+
+#  glucose_mean_day1+potassium_mean_day1+bicarbonate_mean_day1+albumin_mean_day1+hemoglobin_mean_day1+wbc_mean_day1+platelets_mean_day1+mechvent_day01+total_volume_ml_day1+total_na_meq_day1+total_cl_meq_day1,data=df_me_selected_imputed,family="binomial")
+#summary(model)
+
+# Na and Cl and SID (new cat)
+#model<-glm(aki~C(sid_24_mean_catd2,base=5)+C(cl_24_mean_catd2,base=7)+C(na_24_mean_catd,base=7)+
+#age_fixed+gender+weight+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+creat1+
+#  heartrate_mean_day1+systolic_mean_day1+temperature_mean_day1+
+#  glucose_mean_day1+potassium_mean_day1+bicarbonate_mean_day1+albumin_mean_day1+hemoglobin_mean_day1+wbc_mean_day1+platelets_mean_day1+mechvent_day01+total_volume_ml_day1+total_na_meq_day1+total_cl_meq_day1,data=df_me_selected_imputed,family="binomial")
+#summary(model)
+
+# Na and Cl and SID (new cat) without bicarbonate
+#model<-glm(aki~C(sid_24_mean_catd2,base=5)+C(cl_24_mean_catd2,base=7)+C(na_24_mean_catd,base=7)+
+#age_fixed+gender+weight+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+creat1+
+#  heartrate_mean_day1+systolic_mean_day1+temperature_mean_day1+
+#  glucose_mean_day1+potassium_mean_day1+albumin_mean_day1+hemoglobin_mean_day1+wbc_mean_day1+platelets_mean_day1+mechvent_day01+total_volume_ml_day1+total_na_meq_day1+total_cl_meq_day1,data=df_me_selected_imputed,family="binomial")
+#summary(model)
+
+# Na and Cl (new cat) without bicarbonate
+#model<-glm(aki~C(cl_24_mean_catd2,base=7)+C(na_24_mean_catd,base=7)+
+#age_fixed+gender+weight+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+creat1+
+#  heartrate_mean_day1+systolic_mean_day1+temperature_mean_day1+
+#  glucose_mean_day1+potassium_mean_day1+albumin_mean_day1+hemoglobin_mean_day1+wbc_mean_day1+platelets_mean_day1+mechvent_day01+total_volume_ml_day1+total_na_meq_day1+total_cl_meq_day1,data=df_me_selected_imputed,family="binomial")
+#summary(model)
+
+
+# Interaction
+#model<-glm(aki~C(cl_24_mean_cat,base=1)+C(na_24_mean_cat,base=1)+C(cl_24_mean_cat,base=1):C(na_24_mean_cat,base=1)+
+#age_fixed+gender+weight+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+creat1+
+#  heartrate_mean_day1+systolic_mean_day1+temperature_mean_day1+
+#  glucose_mean_day1+potassium_mean_day1+bicarbonate_mean_day1+albumin_mean_day1+hemoglobin_mean_day1+wbc_mean_day1+platelets_mean_day1+mechvent_day01+total_volume_ml_day1+total_na_meq_day1+total_cl_meq_day1,data=df_me_selected_imputed,family="binomial")
+#summary(model)
+
+#model<-glm(aki~C(cl_24_mean_catd2,base=1)+C(na_24_mean_catd,base=1)+C(cl_24_mean_catd2,base=1):C(na_24_mean_catd,base=1)+
+#age_fixed+gender+weight+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+creat1+
+#  heartrate_mean_day1+systolic_mean_day1+temperature_mean_day1+
+#  glucose_mean_day1+potassium_mean_day1+bicarbonate_mean_day1+albumin_mean_day1+hemoglobin_mean_day1+wbc_mean_day1+platelets_mean_day1+mechvent_day01+total_volume_ml_day1+total_na_meq_day1+total_cl_meq_day1,data=df_me_selected_imputed,family="binomial")
+#summary(model)
+
+#model<-glm(aki~C(cl_24_mean_catd3,base=1)+C(na_24_mean_catd3,base=1)+C(cl_24_mean_catd3,base=1):C(na_24_mean_catd3,base=1)+
+#age_fixed+gender+weight+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+creat1+
+#  heartrate_mean_day1+systolic_mean_day1+temperature_mean_day1+
+#  glucose_mean_day1+potassium_mean_day1+bicarbonate_mean_day1+albumin_mean_day1+hemoglobin_mean_day1+wbc_mean_day1+platelets_mean_day1+mechvent_day01+total_volume_ml_day1+total_na_meq_day1+total_cl_meq_day1,data=df_me_selected_imputed,family="binomial")
+#summary(model)
+```
+
+## Mortality
+```{r,eval=F}
+model<-glm(icumortality~C(sid_24_mean_catd,base=5)+C(cl_24_mean_catd,base=8)+C(na_24_mean_catd,base=7)+
+age_fixed+gender+weight+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+creat1+
+  heartrate_mean_day1+systolic_mean_day1+temperature_mean_day1+
+  glucose_mean_day1+potassium_mean_day1+bicarbonate_mean_day1+albumin_mean_day1+hemoglobin_mean_day1+wbc_mean_day1+platelets_mean_day1+mechvent_day01+total_volume_ml_day1+total_na_meq_day1+total_cl_meq_day1,data=df_me_selected_imputed,family="binomial")
+summary(model)
+try<-as.data.frame(summary(model)%>%coef())%>%round(3)
+table<-exp(cbind(OR=coef(model), confint.default(model)))%>%round(2)
+try <- print(table, exact = "ascites", quote = FALSE)
+write.csv(try, file = "table.csv")
+
+# SID and Cl for new categories
+model<-glm(icumortality~C(sid_24_mean_catd2,base=5)+C(cl_24_mean_catd2,base=7)+
+age_fixed+gender+weight+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+creat1+
+  heartrate_mean_day1+systolic_mean_day1+temperature_mean_day1+
+  glucose_mean_day1+potassium_mean_day1+bicarbonate_mean_day1+albumin_mean_day1+hemoglobin_mean_day1+wbc_mean_day1+platelets_mean_day1+mechvent_day01+total_volume_ml_day1+total_na_meq_day1+total_cl_meq_day1,data=df_me_selected_imputed,family="binomial")
+summary(model)
+try<-as.data.frame(summary(model)%>%coef())%>%round(3)
+table<-exp(cbind(OR=coef(model), confint.default(model)))%>%round(2)
+print(table, exact = "ascites", quote = FALSE)
+write.csv(try, file = "table.csv")
+```
+
+### With IPW
+```{r}
+# Create censoring variable
+df_me_selected_imputed$cens_death<-as.numeric(is.na(df_me_selected_imputed$icumortality))
+
+# Calculate denominotor of IPW for selection bias
+denom.cens_m <- glm(cens_death ~C(sid_24_mean_catd2,base=5)+C(cl_24_mean_catd2,base=7)+
+age_fixed+gender+weight+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+creat1+
+  heartrate_mean_day1+systolic_mean_day1+temperature_mean_day1+
+  glucose_mean_day1+potassium_mean_day1+albumin_mean_day1+hemoglobin_mean_day1+wbc_mean_day1+platelets_mean_day1+mechvent_day01+total_volume_ml_day1+total_na_meq_day1+total_cl_meq_day1,family="binomial", data = df_me_selected_imputed)
+
+pd.cens_m <- 1-predict(denom.cens_m, df_me_selected_imputed, type = "response")
+
+# Calculate numerator of IPW for selection bias
+numer.cens_m <- glm(cens_death~C(sid_24_mean_catd2,base=5)+C(cl_24_mean_catd2,base=7), family = binomial(), data = df_me_selected_imputed)
+pn.cens_m <- 1-predict(numer.cens_m, df_me_selected_imputed, type = "response")
+df_me_selected_imputed$sw.c_m <- pn.cens_m/pd.cens_m
+
+# Final model
+model <- geeglm(icumortality ~ C(sid_24_mean_catd2,base=5)+C(cl_24_mean_catd2,base=7)+
+age_fixed+gender+weight+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+creat1+
+  heartrate_mean_day1+systolic_mean_day1+temperature_mean_day1+
+  glucose_mean_day1+potassium_mean_day1+albumin_mean_day1+hemoglobin_mean_day1+wbc_mean_day1+platelets_mean_day1+mechvent_day01+total_volume_ml_day1+total_na_meq_day1+total_cl_meq_day1, data=df_me_selected_imputed, weights=sw.c_m, id=patientunitstayid,corstr="independence",family= binomial(link = "logit"))
+
+summary(model)
+try<-as.data.frame(summary(model)%>%coef())%>%round(3)
+write.csv(try, file = "table.csv")
+OR<-exp(coef(model))
+SE <- coef(summary(model))[,2]
+LCI<-exp(coef(model)-qnorm(0.975)*SE)
+UCI<-exp(coef(model)+qnorm(0.975)*SE)
+try<-cbind(OR, LCI, UCI)%>%round(2)
+write.csv(try, file = "table.csv")
+```
+
+# Variables in the dataset
+### Baseline
+ethnicity+age_fixed+gender+weight+height+BMI+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_cld+pasthistory_malignancy+creat1+
+
+### At admission
+albumin_first+bilirubin_first+BUN_first+wbc_first+platelets_first+hematocrit_first+hemoglobin_first+glucose_first+sodium_first+chloride_first+SID_first+potassium_adm+bicarbonate_adm+ua_adm+heartrate_adm+systolic_adm+temperature_adm+
+'cl_adm_cat' ,'na_adm_cat' ,'sid_adm_cat' 
+
+### 24h
+hst_hr_day1+me_hr_day1+lest_sys_day1+me_sys_day1+lest_dia_day1+me_dia_day1+hst_temp+
+glucose_min_24+hemoglobin_min_24+hematocrit_min_24+platelets_min_24+BUN_min_24+wbc_min_24+albumin_min_24+bilirubin_min24+glucose_max_24+hemoglobin_max_24+hematocrit_max_24+platelets_max_24+BUN_max_24+wbc_max_24+albumin_max_24+sodium_min_24+chloride_min_24+sodium_max_24+chloride_max_24+SID_min_24+SID_max_24+sodium_twa_24hr+chloride_twa_24hr+SID_twa_24hr+
+mechvent_day01+
+glucose_mean_day1+potassium_mean_day1+bicarbonate_mean_day1+albumin_mean_day1+hemoglobin_mean_day1+wbc_mean_day1+platelets_mean_day1+heartrate_mean_day1+systolic_mean_day1+temperature_mean_day1+
+,'cl_24_min_cat' ,'cl_24_max_cat' ,'na_24_min_cat' ,'na_24_max_cat' ,'sid_24_min_cat' ,'sid_24_max_cat' ,'cl_24_mean_cat' ,'cl_24_mean_catd' ,'na_24_mean_cat' ,'na_24_mean_catd' ,'sid_24_mean_cat' ,'sid_24_mean_catd' ,'cl_24_mean_catq' ,'delta_cl_d1' ,'delta_na_d1' ,'delta_sid_d1
+
+
+
+### 48h (No data bout HR, BP, temp, additional means)
+glucose_min_48+hemoglobin_min_48+hematocrit_min_48+platelets_min_48+BUN_min_48+wbc_min_48+albumin_min_48+bilirubin_min_48+glucose_max_48+hemoglobin_max_48+hematocrit_max_48+platelets_max_48+BUN_max_48+wbc_max_48+albumin_max_48+bilirubin_max_48+sodium_min_48+chloride_min_48+sodium_max_48+chloride_max_48+SID_min_48+SID_max_48+sodium_twa_48hr+chloride_twa_48hr+SID_twa_48hr+
+mechvent_day02+
+cl_48_min_cat+cl_48_max_cat+na_48_min_cat+na_48_max_cat+sid_48_min_cat+sid_48_max_cat+cl_48_mean_cat+cl_48_mean_catd+na_48_mean_cat+na_48_mean_catd+sid_48_mean_cat+sid_48_mean_catd+cl_48_mean_catq+delta_cl_d2+delta_na_d2+delta_sid_d2
+
+
+### Others
+patientunitstayid+pre_rrt+surgery+id
+
+
+### Outcome
+aki+
+,'unitlos_days' ,'hosplos_days' ,'ventdays_days' ,'hospitalmortality' ,'icumortality' 
+
+### Blood gas+ventilator
+peep_first+fio2_first+pao2_first+paco2_first+pH_first+aniongap_first+basedeficit_first+baseexcess_first+
+
+pao2_min_24+paco2_min_24+pH_min_24+aniongap_min_24+basedeficit_min_24+baseexcess_min_24+peep_min24+fio2_min_24+fio2_max_24+pao2_max_24+paco2_max_24+pH_max_24+aniongap_max_24+basedeficit_max_24+baseexcess_max_24+peep_max24+
+
+fio2_min_48+pao2_min_48+paco2_min_48+pH_min_48+aniongap_min_48+basedeficit_min_48+baseexcess_min_48+peep_min_48+fio2_max_48+pao2_max_48+paco2_max_48+pH_max_48+aniongap_max_48+basedeficit_max_48+baseexcess_max_48+peep_max_48+
+
+
+

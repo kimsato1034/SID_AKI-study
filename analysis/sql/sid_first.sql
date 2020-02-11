@@ -1,20 +1,18 @@
--- sodium and chloride first available data 24 hours prior to or 24 hours after ICU admission
+-- sodium and chloride first available data -6 hours prior to or 24 hours after ICU admission
 -- difference between sodium ion and chloride ion = strong ion difference (SID)
--- first available data 24 hours prior to or 24 hours after ICU admission
+
 WITH
   all_data AS (
   SELECT
     patientunitstayid,
     labresultoffset,
     CASE
-      WHEN LOWER(labname) = 'sodium' THEN labresult END AS sodium,
+      WHEN LOWER(labname) = 'sodium' AND labresultoffset BETWEEN -6*24 AND 24*60 AND labresult IS NOT NULL THEN labresult END AS sodium,
     CASE
-      WHEN LOWER(labname) = 'chloride' THEN labresult END AS chloride
+      WHEN LOWER(labname) = 'chloride' AND labresultoffset BETWEEN -6*24 AND 24*60 AND labresult IS NOT NULL THEN labresult END AS chloride
   FROM
     `physionet-data.eicu_crd.lab`
-  WHERE
-    LOWER(labname) IN ('sodium','chloride')
-    AND labresultoffset BETWEEN -6*24 AND 24*60 ),
+  ),
   aggregated_data AS (
   SELECT
     patientunitstayid,
@@ -26,7 +24,9 @@ WITH
     all_data
   GROUP BY
     patientunitstayid,
-    labresultoffset)
+    labresultoffset
+  HAVING MAX(sodium) IS NOT NULL AND MAX(chloride) IS NOT NULL
+  )
 SELECT
   patientunitstayid,
   sodium_first,

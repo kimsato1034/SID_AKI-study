@@ -16,7 +16,7 @@ WITH peakcr
                  FROM   `physionet-data.eicu_crd.lab` 
                  WHERE  labname LIKE 'creatinine%' 
                         AND labresultoffset >= 0 
-                        AND labresultoffset <= 10080 
+                        AND labresultoffset <= 60*24*7 -- 7 days 
                  GROUP  BY patientunitstayid, 
                            labresultoffset, 
                            labresult 
