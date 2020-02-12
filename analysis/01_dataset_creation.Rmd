@@ -66,6 +66,7 @@ Loads all queries from the sql files in the extraction folder and runs them into
 #cat(list.files('sql'), sep = '\n')
 
 # AKI related variables
+first_creat<-run_query(getSQL("sql/aki/first_creat.sql"))
 before_adm_creat<-run_query(getSQL("sql/aki/before_adm_creat.sql"))
 adm_creat<-run_query(getSQL("sql/aki/adm_creat.sql"))
 chronicAKI<-run_query(getSQL("sql/aki/chronicAKI.sql"))
@@ -81,8 +82,9 @@ dialysis_first7days<-run_query(getSQL("sql/aki/dialysis_first7days.sql"))
 bg_24_48<-run_query(getSQL("sql/bg_24_48.sql"))
 bg_first<-run_query(getSQL("sql/bg_first.sql"))
 demographics<-run_query(getSQL("sql/demographics.sql"))
-lab_24_48<-run_query(getSQL("sql/lab_24_48.sql"))
 lab_first<-run_query(getSQL("sql/lab_first.sql"))
+lab_24<-run_query(getSQL("sql/lab_24.sql"))
+lab_48<-run_query(getSQL("sql/lab_48.sql"))
 outcomes<-run_query(getSQL("sql/outcomes.sql"))
 pasthistory<-run_query(getSQL("sql/pasthistory.sql"))
 sid_first<-run_query(getSQL("sql/sid_first.sql"))
@@ -253,10 +255,14 @@ sid_aki_study<-inner_join(demographics,reliable_fluids_data)
 # left join = all.x=TRUE
 sid_aki_study<-Reduce(function(...) merge(..., all.x=TRUE), list(
   sid_aki_study
+  
 , bg_first
 , bg_24_48
+
 , lab_first
-, lab_24_48
+, lab_24
+, lab_48
+
 , outcomes
 , pasthistory
 , sid_first
@@ -266,10 +272,13 @@ sid_aki_study<-Reduce(function(...) merge(..., all.x=TRUE), list(
 , temp_day1
 , temp_day2
 , urine_output_24_48
+
 , vent_bin_first_2days
+
 , vitals_day1
 , vitals_day2
 # aki vars
+, first_creat
 , before_adm_creat
 , adm_creat
 , chronicAKI
@@ -277,6 +286,8 @@ sid_aki_study<-Reduce(function(...) merge(..., all.x=TRUE), list(
 , peakcreat48h
 , peakcreat7days
 , AKIlist_final
+
+# new variables requested
 , admission_vars
 , mean_first_day
 , total_na_cl_volume_day1

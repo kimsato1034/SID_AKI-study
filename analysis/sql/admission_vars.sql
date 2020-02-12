@@ -7,7 +7,9 @@ FROM
 `physionet-data.eicu_crd.lab`
 WHERE labname = 'potassium'
 AND
-labresultoffset >= -6*60 -- window where first labresults can be recorded.
+labresultoffset BETWEEN -6*60 AND 24*60 -- window where first labresults can be recorded.
+AND
+labresult IS NOT NULL
 ), sq_bicarbonate AS (
 SELECT
  patientunitstayid
@@ -17,7 +19,9 @@ FROM
 `physionet-data.eicu_crd.lab`
 WHERE labname = 'bicarbonate'
 AND
-labresultoffset >= -6*60 -- window where first labresults can be recorded.
+labresultoffset BETWEEN -6*60 AND 24*60 -- window where first labresults can be recorded.
+AND
+labresult IS NOT NULL
 ), sq_ua AS (
 SELECT
  patientunitstayid
@@ -27,7 +31,9 @@ FROM
 `physionet-data.eicu_crd.lab`
 WHERE labname = 'uric acid'
 AND
-labresultoffset >= -6*60 -- window where first labresults can be recorded.
+labresultoffset BETWEEN -6*60 AND 24*60 -- window where first labresults can be recorded.
+AND
+labresult IS NOT NULL
 ), sq_heartrate AS (
 SELECT
  patientunitstayid
@@ -36,7 +42,9 @@ SELECT
 FROM
 `physionet-data.eicu_crd_derived.pivoted_vital`
 WHERE
-chartoffset >= -6*60 -- window where first labresults can be recorded.
+chartoffset BETWEEN -6*60 AND 24*60 -- window where first labresults can be recorded.
+AND
+heartrate IS NOT NULL
 ), sq_systolic AS (
 SELECT
  patientunitstayid
@@ -45,7 +53,9 @@ SELECT
 FROM
 `physionet-data.eicu_crd_derived.pivoted_vital`
 WHERE
-chartoffset >= -6*60 -- window where first labresults can be recorded.
+chartoffset BETWEEN -6*60 AND 24*60 -- window where first labresults can be recorded.
+AND
+(nibp_systolic IS NOT NULL OR ibp_systolic IS NOT NULL)
 ), sq_temperature AS (
 SELECT
  patientunitstayid
@@ -54,7 +64,9 @@ SELECT
 FROM
 `physionet-data.eicu_crd_derived.pivoted_vital`
 WHERE
-chartoffset >= -6*60 -- window where first labresults can be recorded.
+chartoffset BETWEEN -6*60 AND 24*60 -- window where first labresults can be recorded.
+AND
+temperature IS NOT NULL
 )
 SELECT
  patient.patientunitstayid
@@ -69,24 +81,24 @@ FROM
 LEFT JOIN
 sq_potasium
 ON 
-(patient.patientunitstayid=sq_potasium.patientunitstayid AND sq_potasium.rn=1)
+patient.patientunitstayid=sq_potasium.patientunitstayid AND sq_potasium.rn=1
 LEFT JOIN
 sq_bicarbonate
-ON 
-(patient.patientunitstayid=sq_bicarbonate.patientunitstayid AND sq_bicarbonate.rn=1)
+ON
+patient.patientunitstayid=sq_bicarbonate.patientunitstayid AND sq_bicarbonate.rn=1
 LEFT JOIN
 sq_ua
-ON 
-(patient.patientunitstayid=sq_ua.patientunitstayid AND sq_ua.rn=1)
+ON
+patient.patientunitstayid=sq_ua.patientunitstayid AND sq_ua.rn=1
 LEFT JOIN
 sq_heartrate
 ON 
-(patient.patientunitstayid=sq_heartrate.patientunitstayid AND sq_heartrate.rn=1)
+patient.patientunitstayid=sq_heartrate.patientunitstayid AND sq_heartrate.rn=1
 LEFT JOIN
 sq_systolic
 ON 
-(patient.patientunitstayid=sq_systolic.patientunitstayid AND sq_systolic.rn=1)
+patient.patientunitstayid=sq_systolic.patientunitstayid AND sq_systolic.rn=1
 LEFT JOIN
 sq_temperature
 ON 
-(patient.patientunitstayid=sq_temperature.patientunitstayid AND sq_temperature.rn=1)
+patient.patientunitstayid=sq_temperature.patientunitstayid AND sq_temperature.rn=1
