@@ -1,0 +1,751 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r}
+library(dplyr)
+library(tableone)
+library(psych)
+library(ggplot2)
+library(MASS)
+library(geepack)
+library(gridExtra)
+library(grid)
+```
+
+```{r}
+rm(list=ls())
+```
+
+
+# Data wrangling
+
+```{r}
+sid_aki_study<-read.csv("sid_aki_study-7.csv",header=T)
+colnames(sid_aki_study)
+summary(sid_aki_study$creat_first)
+summary(sid_aki_study$creat_adm)
+summary(sid_aki_study$creat_before_adm)
+
+nrow(sid_aki_study)
+# Admission data
+df_1<-sid_aki_study%>%dplyr::select(patientunitstayid,creat_adm,creat_adm_offset,age_fixed,gender,ethnicity,weight,height,albumin_first,bilirubin_first,BUN_first,wbc_first,platelets_first,hematocrit_first,hemoglobin_first,glucose_first,unitlos_days,hosplos_days,hospitalmortality,icumortality,pasthistory_chf,pasthistory_pvd,pasthistory_hypertension,pasthistory_copd,pasthistory_diabetes,pasthistory_cld,pasthistory_malignancy,sodium_first,chloride_first,SID_first,mechvent_day01,first_rrtoffset,rrt_bin,peakcreat48h_offset,peakcreat48h,peakcreat7d,peakcreat7d_offset,peakcreat7d_to_discharge_offsetgap,AKIstage,potassium_adm,bicarbonate_adm,ua_adm,heartrate_adm,systolic_adm,temperature_adm,dialysis_in_the_icu_first7days_bin,first_dialysis_in_the_icu_first7days_offset,hospitalAdmitSource,ventdays_days,creat_first)
+  
+colnames(df_1)
+summary(sid_aki_study$chloride_first)
+summary(sid_aki_study$chloride_min_24)
+summary(sid_aki_study$chloride_max_24)
+summary(sid_aki_study$chloride_twa_24)
+
+
+summary(sid_aki_study$albumin_first)
+summary(sid_aki_study$albumin_max_24)
+
+summary(sid_aki_study$hemoglobin_first)
+summary(sid_aki_study$hemoglobin_min_24)
+summary(sid_aki_study$hemoglobin_max_24)
+
+
+summary(sid_aki_study$peakcreat7d)
+  
+#%>%mutate(aki=as.factor(aki),icumortality=as.factor(icumortality),hospitalmortality=as.factor(hospitalmortality),pasthistory_malignancy=as.factor(pasthistory_malignancy),aki_adm=as.factor(aki_adm),pre_rrt=as.factor(pre_rrt))
+
+```
+
+
+```{r}
+df_1$ethnicity[df_1$ethnicity ==""| 
+             df_1$ethnicity == "Native American"|
+             df_1$ethnicity == "Other/Unknow"] <- "Other/Unknown"
+
+df_1$surgery<-NA
+df_1$surgery[df_1$hospitalAdmitSource =="Operating Room"| 
+             df_1$hospitalAdmitSource == "PACU"] <- 1
+df_1$surgery[df_1$hospitalAdmitSource =="Acute Care/Floor"| 
+             df_1$hospitalAdmitSource == "Chest Pain Center"|
+             df_1$hospitalAdmitSource == "Direct Admit"|
+               df_1$hospitalAdmitSource == "Emergency Department"|
+               df_1$hospitalAdmitSource == "Floor"|
+               df_1$hospitalAdmitSource == "ICU"|
+               df_1$hospitalAdmitSource == "ICU to SDU"|
+               df_1$hospitalAdmitSource == "Observation"|
+               df_1$hospitalAdmitSource == "Other"|
+               df_1$hospitalAdmitSource == "Other Hospital"|
+               df_1$hospitalAdmitSource == "Other ICU"|
+               df_1$hospitalAdmitSource == "Recovery Room"|
+               df_1$hospitalAdmitSource == "Step-Down Unit (SDU)"] <- 0
+summary(df_1$hospitalAdmitSource)
+summary(df_1$surgery)
+
+#Categorizing Na, Cl, and SID
+df_2<-df_1%>%mutate(cl_adm_cat=case_when(.$chloride_first<98 ~ 1,
+                              .$chloride_first>=98 & .$chloride_first<=110 ~ 0,
+                              .$chloride_first>110 ~ 2,
+                                TRUE ~ as.numeric(NA)),
+         na_adm_cat=case_when(.$sodium_first>145 ~ 2,
+                                .$sodium_first<=145  & .$sodium_first>=135 ~ 0,
+                                .$sodium_first<135 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         sid_adm_cat=case_when(.$SID_first>37 ~ 2,
+                                .$SID_first<=37  & .$SID_first>=31 ~ 0,
+                                .$SID_first<31 ~ 1,
+                                TRUE ~ as.numeric(NA)),
+         # detailed category
+         cl_adm_catd=case_when(.$chloride_first>116 ~ 13,
+                                   .$chloride_first>114&.$chloride_first<=116 ~ 12,
+                                   .$chloride_first>112&.$chloride_first<=114 ~ 11,
+                                   .$chloride_first>110&.$chloride_first<=112 ~ 10,
+                                   .$chloride_first>108&.$chloride_first<=110 ~ 9,
+                                   .$chloride_first>106&.$chloride_first<=108 ~ 8,
+                                   .$chloride_first>104&.$chloride_first<=106 ~ 7,
+                                   .$chloride_first>102&.$chloride_first<=104 ~ 6,
+                                   .$chloride_first>100&.$chloride_first<=102 ~ 5,
+                                   .$chloride_first>98&.$chloride_first<=100~ 4,
+                                   .$chloride_first>96&.$chloride_first<=98 ~ 3,
+                                   .$chloride_first>94&.$chloride_first<=96 ~ 2,
+                                   .$chloride_first<=94~1,
+                                   TRUE ~ as.numeric(NA)),
+         na_adm_catd=case_when(.$sodium_first>146 ~ 11,
+                                   .$sodium_first>144&.$sodium_first<=146 ~ 10,
+                                   .$sodium_first>142&.$sodium_first<=144 ~ 9,
+                                   .$sodium_first>140&.$sodium_first<=142 ~ 8,
+                                   .$sodium_first>138&.$sodium_first<=140 ~ 7,
+                                   .$sodium_first>136&.$sodium_first<=138 ~ 6,
+                                   .$sodium_first>134&.$sodium_first<=136 ~ 5,
+                                   .$sodium_first>132&.$sodium_first<=134 ~ 4,
+                                   .$sodium_first>130&.$sodium_first<=132 ~ 3,
+                                   .$sodium_first<=130~1,
+                                   TRUE ~ as.numeric(NA)),
+         sid_adm_catd=case_when(.$SID_first>42 ~ 10,
+                                .$SID_first>40  & .$SID_first<=42 ~ 9,
+                                .$SID_first>38  & .$SID_first<=40 ~ 8,
+                                .$SID_first>36  & .$SID_first<=38 ~ 7,
+                                .$SID_first>34  & .$SID_first<=36 ~ 6,
+                                .$SID_first>32  & .$SID_first<=34 ~ 5,
+                                .$SID_first>30  & .$SID_first<=32 ~ 4,
+                                .$SID_first>28  & .$SID_first<=30 ~ 3,
+                                .$SID_first>26  & .$SID_first<=28 ~ 2,
+                                .$SID_first<=26 ~ 1,
+                                TRUE ~ as.numeric(NA))
+         )%>%mutate(gender=case_when(.$gender=="Female"~0,
+                          .$gender=="Male"~1,
+                          TRUE~as.numeric(NA)))%>%
+   mutate_at(c("gender","pasthistory_chf","pasthistory_pvd","pasthistory_hypertension","pasthistory_copd","pasthistory_diabetes","cl_adm_cat","na_adm_cat","sid_adm_cat","cl_adm_catd","na_adm_catd","sid_adm_catd","ethnicity","surgery"),as.factor)
+```
+
+
+```{r}
+#Exclude rrt before admision
+df_3<-df_2%>%
+  mutate(aki=case_when(.$AKIstage==0~0,.$AKIstage%in%c(1,2,3)~1))%>%
+  mutate(pre_rrt=case_when(.$rrt_bin==1&first_rrtoffset<=0~1,
+                           .$rrt_bin==0|first_rrtoffset>1~0, 
+                          TRUE~as.numeric(NA)))%>%filter(pre_rrt==0|is.na(pre_rrt)) # There is not rrt_bin=0, so NA means no rrt?
+
+nrow(df_2)-nrow(df_3)
+
+# Exclude cre>=3 at admission
+df_4<-df_3%>% filter(creat_first<=3|is.na(creat_first))
+
+#Exclude aki at admission
+#df_1<-df_1%>% mutate(aki_adm=case_when(.$creat_adm>=.$creat1+0.3|.$creat_adm>=.$creat1*1.5~1,
+ #                                .$creat_adm<.$creat1+0.3&.$creat_adm<.$creat1*1.5~0,
+  #                                     TRUE~as.numeric(NA)))%>%filter(aki_adm==1|is.na(aki_adm))
+
+nrow(df_3)-nrow(df_4)
+
+#Exclude surgical patients
+df_me<-df_4%>%filter(surgery==0)
+
+nrow(df_4)-nrow(df_me) # Number of surgical patients 
+
+# Excluded patients
+nrow(sid_aki_study)-nrow(df_me) 
+
+```
+
+
+# Imputation on selected variables
+## Mean Imputation
+
+```{r}
+# Plan
+## Complete case for predictor
+## IPW for outcome
+## Single, sinple imputation for continuous covariates
+## Indicator variable for discrete covariates
+
+# Select variables
+df_me_selected<-df_me%>%dplyr::select(-creat_adm_offset,-first_rrtoffset,-peakcreat48h_offset,-peakcreat7d_offset,-peakcreat7d_to_discharge_offsetgap,-first_dialysis_in_the_icu_first7days_offset,-hospitalAdmitSource,-pre_rrt,-creat_adm)
+
+df_me_selected_imputed<-df_me_selected
+
+for(i in 1:ncol(df_me_selected_imputed)){
+  df_me_selected_imputed[is.na(df_me_selected_imputed[,i]), i] <- mean(df_me_selected_imputed[,i], na.rm = TRUE)
+}
+```
+### Studying variables missing values
+
+```{r}
+missing_values<-as.data.frame(sapply(df_me_selected, function(x) round(sum(is.na(x))/length(x),2)))
+names(missing_values)<-'percentage_missing'
+
+toomany_missing<-rownames(subset(missing_values,missing_values$percentage_missing>0.70))
+toomany_missing
+```
+
+### Final replacement
+We are not imputing values listed above, so we replace the imputed columns with the orginal ones
+```{r}
+keep.origninal<-dplyr::select(df_me_selected,c(patientunitstayid,
+# MNAR  
+
+# too many missing values
+
+# Predictors and outcomes: No? impute them?
+sodium_first,chloride_first,SID_first,cl_adm_cat,na_adm_cat,sid_adm_cat,cl_adm_catd,na_adm_catd,sid_adm_catd,
+peakcreat48h,peakcreat7d,AKIstage,dialysis_in_the_icu_first7days_bin,unitlos_days ,hosplos_days ,ventdays_days,hospitalmortality,icumortality,
+# Categorical variables should be dealed with using indicator variable, not imputed.
+aki,AKIstage,surgery,gender,ethnicity,pasthistory_chf,pasthistory_pvd,pasthistory_hypertension,pasthistory_copd,pasthistory_diabetes,pasthistory_cld,pasthistory_malignancy
+)
+)
+
+# Final replacement
+df_me_selected_imputed[,names(keep.origninal)] <- keep.origninal
+
+# Complete case for predictors
+df_me_selected_imputed<-df_me_selected_imputed%>%filter(!is.na(sodium_first),!is.na(chloride_first),!is.na(SID_first))%>%droplevels()
+```
+
+# Count data
+```{r}
+colnames(df_me_selected_imputed)
+df_me_selected_imputed%>%ggplot()+
+  geom_histogram(aes(sid_adm_catd),stat="count")+scale_x_discrete(labels=c("-26","26-28","28-30","30-32","32-34","34-36","36-38","38-40","40-42","42-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10))
+
+df_me_selected_imputed%>%ggplot()+
+  geom_histogram(aes(na_adm_catd),stat="count")+scale_x_discrete(labels=c("-130","130-132","132-134","134-136","136-138","138-140","140-142","142-144","144-146","146-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10))
+
+df_me_selected_imputed%>%ggplot()+
+  geom_histogram(aes(cl_adm_catd),stat="count")+scale_x_discrete(labels=c("-94","94-96","96-98","98-100","100-102","102-104","104-106","106-108","108-110","110-112","112-114","114-116","116-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10))
+```
+
+
+
+```{r}
+# Patients' characteristics
+df_me_selected_comp<-df_me_selected%>%filter(!is.na(sodium_first),!is.na(chloride_first),!is.na(SID_first))%>%mutate(aki=as.factor(aki))%>%mutate(icumortality=as.factor(icumortality),hospitalmortality=as.factor(hospitalmortality))%>%droplevels()
+nrow(df_me_selected)-nrow(df_me_selected_comp)
+# Sample size
+nrow(df_me_selected_comp)
+summary(df_me_selected_comp)
+describe(df_me_selected_comp$age_fixed)
+describe(df_me_selected_comp$weight)
+summary(df_me_selected_comp$creat_first)
+
+#SID, Na, and Cl
+summary(df_me_selected_comp$sid_adm_cat)
+prop.table(summary(df_me_selected_comp$sid_adm_cat))
+summary(df_me_selected_comp$na_adm_cat)
+prop.table(summary(df_me_selected_comp$na_adm_cat))
+summary(df_me_selected_comp$cl_adm_cat)
+prop.table(summary(df_me_selected_comp$cl_adm_cat))
+
+# AKI
+summary(df_me_selected_comp$aki)
+prop.table(summary(df_me_selected_comp$aki))
+df_me_selected_comp%>% mutate(AKIstage=as.factor(AKIstage))%>%dplyr::select(AKIstage)%>%summary()
+
+# Mortality
+summary(df_me_selected_comp$icumortality)
+prop.table(summary(df_me_selected_comp$icumortality))
+
+summary(df_me_selected_comp$hospitalmortality)
+prop.table(summary(df_me_selected_comp$hospitalmortality))
+
+# Table one: base
+table<-CreateTableOne(vars=c("age_fixed","gender","height","weight","ethnicity","pasthistory_chf","pasthistory_pvd","pasthistory_hypertension","pasthistory_copd","pasthistory_diabetes","pasthistory_malignancy","creat_first"),strata="sid_adm_cat",data=df_me_selected_comp)
+
+try <- print(table, exact = "ascites", quote = FALSE)
+write.csv(try, file = "table.csv")
+
+# Table one: Characteristics
+table<-CreateTableOne(vars=c("SID_first","chloride_first","sodium_first","albumin_first","bilirubin_first","BUN_first","wbc_first","platelets_first","hematocrit_first","hemoglobin_first","glucose_first","potassium_adm","ua_adm","heartrate_adm","systolic_adm","temperature_adm","bicarbonate_adm"),strata="sid_adm_cat",data=df_me_selected_comp)
+try <- print(table, exact = "ascites", quote = FALSE)
+write.csv(try, file = "table.csv")
+
+colnames(df_me_selected_comp)
+
+# Table one: Outcome
+table<-CreateTableOne(vars=c("aki","AKIstage","icumortality",'hospitalmortality','unitlos_days' ,'hosplos_days'),strata="sid_adm_cat",data=df_me_selected_comp)
+try <- print(table, exact = "ascites", quote = FALSE)
+write.csv(try, file = "table.csv")
+
+```
+
+
+```{r}
+write.csv(df_me_selected_imputed,"df_me_selected_imputed.csv")
+write.csv(df_me_selected_comp,"df_me_selected_comp.csv")
+```
+
+# Univariable analyses
+## AKI
+```{r}
+df_me_selected_imputed<-df_me_selected_imputed%>%mutate(aki=as.numeric(as.character(aki)))
+#SID
+# Upper figure
+p_1<-df_me_selected_imputed%>%filter(!is.na(sid_adm_catd))%>%group_by(sid_adm_catd)%>%summarize(aki_incidence=sum(aki,na.rm = T)/n()*100)%>%ggplot()+
+  geom_bar(aes(x=sid_adm_catd,y=aki_incidence),width=0.8,stat="identity")+
+  scale_x_discrete(labels=c("-26","26-28","28-30","30-32","32-34","34-36","36-38","38-40","40-42","42-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=12),axis.text.y = element_text(size=12))+
+  xlab(expression(paste(mSID," (mEq/L)")))+
+  ylab(label="AKI incidence (%)")
+
+# Table
+l_1<-df_me_selected_imputed%>%filter(!is.na(sid_adm_catd))%>%group_by(sid_adm_catd)%>%summarize(n=n(),death=sum(aki,na.rm = T))
+c1<-data.frame(SID=c("-26","26-28","28-30","30-32","32-34","34-36","36-38","38-40","40-42","42-"))
+l_1<-cbind(c1,l_1)%>%dplyr::select(-sid_adm_catd)
+tab = t(l_1)
+tab = tableGrob(tab, rows=NULL,theme=ttheme_default(base_size = 12))
+tab$widths <- unit(rep(1/ncol(tab), ncol(tab)), "npc")
+
+# Legend of table
+le <- structure(list(a = "SID (mEq/L)", b="n", c ="AKI"), .Names = c("SID","N", "AKI"), class = "data.frame", row.names = c(NA, -1L))
+le_tab = t(le)
+le_tab = tableGrob(le_tab, rows=NULL,theme=ttheme_default(base_size = 12))
+le_tab$widths <- unit(rep(1/ncol(le_tab), ncol(le_tab)), "npc")
+
+# Combine
+grid.arrange(arrangeGrob(nullGrob(), p_1 + guides(fill=FALSE),widths=c(1,8)), 
+         arrangeGrob(arrangeGrob(nullGrob(),le_tab,heights=c(1,0),widths=c(1,1)), tab, nullGrob(), widths=c(10,45,1)), heights=c(8,1)) 
+```
+
+
+```{r}
+#Cl
+# Upper figure
+p_1<-df_me_selected_imputed%>%filter(!is.na(cl_adm_catd))%>%group_by(cl_adm_catd)%>%summarize(aki_incidence=sum(aki,na.rm =T)/n()*100)%>%ggplot()+geom_bar(aes(x=cl_adm_catd,y=aki_incidence),width=0.8,stat="identity")+scale_x_discrete(labels=c("-94","94-96","96-98","98-100","100-102","102-104","104-106","106-108","108-110","110-112","112-114","114-116","116-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=12),axis.text.y = element_text(size=12))+xlab(expression(paste("[Cl"^"-","] (mEq/L)")))+ ylab(label="AKI incidence (%)")
+
+
+# Table
+l_1<-df_me_selected_imputed%>%filter(!is.na(cl_adm_catd))%>%group_by(cl_adm_catd)%>%summarize(n=n(),death=sum(aki,na.rm = T))
+c1<-data.frame(time=c("-94","94-96","96-98","98-100","100-102","102-104","104-106","106-108","108-110","110-112","112-114","114-116","116-"))
+l_1<-cbind(c1,l_1)%>%dplyr::select(-cl_adm_catd)
+tab = t(l_1)
+tab = tableGrob(tab, rows=NULL, theme=ttheme_default(base_size = 12))
+tab$widths <- unit(rep(1/ncol(tab), ncol(tab)), "npc")
+
+# Legend of table
+le <- structure(list(a = "[Cl](mEq/L)", b ="n", c="AKI"), .Names = c("SID","N", "AKI"), class = "data.frame", row.names = c(NA, -1L))
+le_tab = t(le)
+le_tab = tableGrob(le_tab, rows=NULL,theme=ttheme_default(base_size = 12))
+le_tab$widths <- unit(rep(1/ncol(le_tab), ncol(le_tab)), "npc")
+
+# Combine
+grid.arrange(arrangeGrob(nullGrob(), p_1 + guides(fill=FALSE),widths=c(1,8)), 
+         arrangeGrob(arrangeGrob(nullGrob(),le_tab,heights=c(1,0),widths=c(1,1)), tab, nullGrob(), widths=c(9,45,1)), heights=c(8,1)) 
+
+
+
+#Na
+#df_me_selected_imputed%>%filter(!is.na(na_adm_catd))%>%group_by(na_adm_catd)%>%summarize(aki_incidence=sum(aki,na.rm = T)/n()*100)%>%ggplot()+geom_bar(aes(x=na_adm_catd,y=aki_incidence),width=0.8,stat="identity")+scale_x_discrete(labels=c("-130","130-132","132-134","134-136","136-138","138-140","140-142","142-144","144-146","146-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10))+xlab(expression(paste("Na"^"+"," (mEq/L)")))+ ylab(label="AKI incidence (%)")
+```
+
+
+# Multivariable regression
+## AKI
+### Whole data without IPW
+### Without bicarbonate, because if included, interpretation is difficult
+```{r}
+# SID and Cl without IPW
+model<-glm(aki~C(sid_adm_catd,base=5)+C(cl_adm_catd,base=7)+
+age_fixed+gender+weight+height+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+heartrate_adm+systolic_adm+temperature_adm+wbc_first+platelets_first+hematocrit_first+hemoglobin_first+albumin_first+bilirubin_first+BUN_first+glucose_first+creat_first+potassium_adm+ua_adm,data=df_me_selected_imputed,family="binomial")
+summary(model)
+
+try<-as.data.frame(summary(model)%>%coef())%>%round(3)
+write.csv(try, file = "table.csv")
+table<-exp(cbind(OR=coef(model), confint.default(model)))%>%round(2)
+try<-print(table, exact = "ascites", quote = FALSE)
+write.csv(try, file = "table.csv")
+
+as.data.frame(summary(model)%>%coef())%>%round(6)
+exp(0.011737*10)
+coef(model)[25]
+exp(cbind(coef(model)[23],confint.default(model)[23]))
+# Age
+coef(model)[23]
+exp(cbind(coef(model)*10,confint.default(model)*10))[23,]
+# Weight
+coef(model)[25]
+exp(cbind(coef(model)*10,confint.default(model)*10))[25,]
+# Height
+coef(model)[26]
+exp(cbind(coef(model)*10,confint.default(model)*10))[26,]
+# HR
+coef(model)[37]
+exp(cbind(coef(model)*10,confint.default(model)*10))[37,]
+# SBP
+coef(model)[38]
+exp(cbind(coef(model)*10,confint.default(model)*10))[38,]
+# BUN
+coef(model)[46]
+exp(cbind(coef(model)*10,confint.default(model)*10))[46,]
+# Glu
+coef(model)[47]
+exp(cbind(coef(model)*20,confint.default(model)*20))[47,]
+
+# Plt
+coef(model)[41]
+exp(cbind(coef(model)*41,confint.default(model)*20))[41,]
+```
+
+
+### Subgroup without IPW
+```{r}
+df_me_selected_imputed_sub<-df_me_selected_imputed%>%mutate(sid_adm_catd=as.numeric(as.character(sid_adm_catd)),cl_adm_catd=as.numeric(as.character(cl_adm_catd)))
+df_sid_l_cl_l<-df_me_selected_imputed_sub%>%filter(SID_first<=34&chloride_first<=106)
+df_sid_l_cl_h<-df_me_selected_imputed_sub%>%filter(SID_first<=34&chloride_first>106)
+df_sid_h_cl_l<-df_me_selected_imputed_sub%>%filter(SID_first>34&chloride_first<=106)
+df_sid_h_cl_h<-df_me_selected_imputed_sub%>%filter(SID_first>34&chloride_first>106)
+summary(df_me_selected_imputed$cl_adm_catd)
+```
+
+```{r}
+summary(df_sid_l_cl_l)
+
+# Low SID and Low Cl
+model<-glm(aki~SID_first+chloride_first+
+age_fixed+gender+weight+height+albumin_first+bilirubin_first+BUN_first+wbc_first+platelets_first+hematocrit_first+hemoglobin_first+glucose_first+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+creat_first+potassium_adm+ua_adm+heartrate_adm+systolic_adm+temperature_adm,data=df_sid_l_cl_l,family="binomial")
+summary(model)
+exp(cbind(OR=coef(model), confint.default(model)))%>%round(2)
+
+# Low SID and High Cl
+model<-glm(aki~SID_first+chloride_first+
+age_fixed+gender+weight+height+albumin_first+bilirubin_first+BUN_first+wbc_first+platelets_first+hematocrit_first+hemoglobin_first+glucose_first+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+creat_first+potassium_adm+ua_adm+heartrate_adm+systolic_adm+temperature_adm,data=df_sid_l_cl_h,family="binomial")
+summary(model)
+exp(cbind(OR=coef(model), confint.default(model)))%>%round(2)
+
+# High SID and Low Cl
+model<-glm(aki~SID_first+chloride_first+
+age_fixed+gender+weight+height+albumin_first+bilirubin_first+BUN_first+wbc_first+platelets_first+hematocrit_first+hemoglobin_first+glucose_first+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+creat_first+potassium_adm+ua_adm+heartrate_adm+systolic_adm+temperature_adm,data=df_sid_h_cl_l,family="binomial")
+summary(model)
+exp(cbind(OR=coef(model), confint.default(model)))%>%round(2)
+# High SID and High Cl
+model<-glm(aki~SID_first+chloride_first+
+age_fixed+gender+weight+height+albumin_first+bilirubin_first+BUN_first+wbc_first+platelets_first+hematocrit_first+hemoglobin_first+glucose_first+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+creat_first+potassium_adm+ua_adm+heartrate_adm+systolic_adm+temperature_adm,data=df_sid_h_cl_h,family="binomial")
+summary(model)
+exp(cbind(OR=coef(model), confint.default(model)))%>%round(2)
+```
+
+
+### IPW
+```{r}
+# SID and Cl for new categories without bicarbonate, with IPW
+# "aki" is outcome with missing value
+# Both "sid_adm_catd" and "cl_adm_catd" are categorical predictors of interest
+
+# Create censoring variable
+df_me_selected_imputed_ipw<-df_me_selected_imputed
+df_me_selected_imputed_ipw$cens<-as.numeric(is.na(df_me_selected_imputed_ipw$aki))
+
+# Calculate denominotor of IPW for selection bias
+denom.cens <- glm(cens ~C(sid_adm_catd,base=5)+C(cl_adm_catd,base=7)+
+age_fixed+weight+height+albumin_first+bilirubin_first+BUN_first+wbc_first+platelets_first+hematocrit_first+hemoglobin_first+glucose_first+creat_first+potassium_adm+ua_adm+heartrate_adm+systolic_adm+temperature_adm,family="binomial", data = df_me_selected_imputed_ipw)
+
+pd.cens <- 1-predict(denom.cens, df_me_selected_imputed_ipw, type = "response")
+
+# Calculate numerator of IPW for selection bias
+numer.cens <- glm(cens~C(sid_adm_catd,base=5)+C(cl_adm_catd,base=7), family = binomial(), data = df_me_selected_imputed_ipw)
+pn.cens <- 1-predict(numer.cens, df_me_selected_imputed_ipw, type = "response")
+df_me_selected_imputed_ipw$sw.c <- pn.cens/pd.cens
+
+
+# Final model
+# Maybe,to use "geeglm", there should be no missing value; stage 2 regression is for complete case subgroup.
+df_me_selected_imputed_ipw<-df_me_selected_imputed_ipw%>%filter(!is.na(gender)&!is.na(ethnicity)&!is.na(pasthistory_chf)&!is.na(pasthistory_pvd)&!is.na(pasthistory_hypertension)&!is.na(pasthistory_copd)&!is.na(pasthistory_diabetes)&!is.na(pasthistory_malignancy))
+
+model <- geeglm(aki ~ C(sid_adm_catd,base=5)+C(cl_adm_catd,base=7)+
+age_fixed+gender+weight+height+albumin_first+bilirubin_first+BUN_first+wbc_first+platelets_first+hematocrit_first+hemoglobin_first+glucose_first+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+creat_first+potassium_adm+ua_adm+heartrate_adm+systolic_adm+temperature_adm, data=df_me_selected_imputed_ipw, weights=sw.c, id=patientunitstayid,corstr="independence",family= binomial(link = "logit"))
+
+summary(model)
+try<-as.data.frame(summary(model)%>%coef())%>%round(3)
+write.csv(try, file = "table.csv")
+OR<-exp(coef(model))
+SE <- coef(summary(model))[,2]
+LCI<-exp(coef(model)-qnorm(0.975)*SE)
+UCI<-exp(coef(model)+qnorm(0.975)*SE)
+try<-cbind(OR, LCI, UCI)%>%round(2)
+write.csv(try, file = "table.csv")
+```
+
+
+
+
+
+## ICU Morality
+```{r}
+df_me_selected_imputed<-df_me_selected_imputed%>%mutate(icumortality=as.numeric(as.character(icumortality)))
+#SID
+df_me_selected_imputed%>%filter(!is.na(sid_adm_catd))%>%group_by(sid_adm_catd)%>%summarize(icumortality_incidence=sum(icumortality,na.rm = T)/n()*100)%>%ggplot()+
+  geom_bar(aes(x=sid_adm_catd,y=icumortality_incidence),width=0.8,stat="identity")+
+  scale_x_discrete(labels=c("-26","26-28","28-30","30-32","32-34","34-36","36-38","38-40","40-42","42-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10))+
+  xlab(expression(paste(mSID," (mEq/L)")))+
+  ylab(label="ICU mortality (%)")
+
+
+#Cl
+df_me_selected_imputed%>%filter(!is.na(cl_adm_catd))%>%group_by(cl_adm_catd)%>%summarize(icumortality_incidence=sum(icumortality,na.rm = T)/n()*100)%>%ggplot()+geom_bar(aes(x=cl_adm_catd,y=icumortality_incidence),width=0.8,stat="identity")+scale_x_discrete(labels=c("-94","94-96","96-98","98-100","100-102","102-104","104-106","106-108","108-110","110-112","112-114","114-116","116-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10))+xlab(expression(paste("Cl"^"-"," (mEq/L)")))+ ylab(label="ICU mortality (%)")
+
+#Na
+#df_me_selected_imputed%>%filter(!is.na(na_24_mean_catd))%>%group_by(na_24_mean_catd)%>%summarize(icumortality_incidence=sum(icumortality,na.rm = T)/n()*100)%>%ggplot()+geom_bar(aes(x=na_24_mean_catd,y=icumortality_incidence),width=0.8,stat="identity")+scale_x_discrete(labels=c("-130","130-132","132-134","134-136","136-138","138-140","140-142","142-144","144-146","146-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10))+xlab(expression(paste("Na"^"+"," (mEq/L)")))+ ylab(label="ICU mortality (%)")
+```
+
+
+```{r}
+# SID
+# Upper figure
+p_1<-df_me_selected_imputed%>%filter(!is.na(sid_adm_catd))%>%group_by(sid_adm_catd)%>%summarize(icumortality_incidence=sum(icumortality,na.rm = T)/n()*100)%>%ggplot()+
+  geom_bar(aes(x=sid_adm_catd,y=icumortality_incidence),width=0.8,stat="identity")+
+  scale_x_discrete(labels=c("-26","26-28","28-30","30-32","32-34","34-36","36-38","38-40","40-42","42-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=12),axis.text.y = element_text(size=12))+
+  xlab(expression(paste(mSID," (mEq/L)")))+
+  ylab(label="ICU mortality (%)")
+
+# Table
+l_1<-df_me_selected_imputed%>%filter(!is.na(sid_adm_catd))%>%group_by(sid_adm_catd)%>%summarize(n=n(),death=sum(icumortality,na.rm = T))
+c1<-data.frame(SID=c("-26","26-28","28-30","30-32","32-34","34-36","36-38","38-40","40-42","42-"))
+l_1<-cbind(c1,l_1)%>%dplyr::select(-sid_adm_catd)
+tab = t(l_1)
+tab = tableGrob(tab, rows=NULL,theme=ttheme_default(base_size = 12))
+tab$widths <- unit(rep(1/ncol(tab), ncol(tab)), "npc")
+
+# Legend of table
+le <- structure(list(a = "SID (mEq/L)", b="n", c ="Death"), .Names = c("SID","N", "DEATH"), class = "data.frame", row.names = c(NA, -1L))
+le_tab = t(le)
+le_tab = tableGrob(le_tab, rows=NULL,theme=ttheme_default(base_size = 12))
+le_tab$widths <- unit(rep(1/ncol(le_tab), ncol(le_tab)), "npc")
+
+# Combine
+grid.arrange(arrangeGrob(nullGrob(), p_1 + guides(fill=FALSE),widths=c(1,8)), 
+         arrangeGrob(arrangeGrob(nullGrob(),le_tab,heights=c(1,0),widths=c(1,1)), tab, nullGrob(), widths=c(10,45,1)), heights=c(8,1)) 
+```
+
+
+```{r}
+# Cl
+# Upper figure
+p_1<-df_me_selected_imputed%>%filter(!is.na(cl_adm_catd))%>%group_by(cl_adm_catd)%>%summarize(icumortality_incidence=sum(icumortality,na.rm = T)/n()*100)%>%ggplot()+geom_bar(aes(x=cl_adm_catd,y=icumortality_incidence),width=0.8,stat="identity")+scale_x_discrete(labels=c("-94","94-96","96-98","98-100","100-102","102-104","104-106","106-108","108-110","110-112","112-114","114-116","116-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10),axis.text.y = element_text(size=12))+xlab(expression(paste("[Cl"^"-","] (mEq/L)")))+ ylab(label="ICU mortality (%)")
+
+# Table
+l_1<-df_me_selected_imputed%>%filter(!is.na(cl_adm_catd))%>%group_by(cl_adm_catd)%>%summarize(n=n(),death=sum(icumortality,na.rm = T))
+c1<-data.frame(time=c("-94","94-96","96-98","98-100","100-102","102-104","104-106","106-108","108-110","110-112","112-114","114-116","116-"))
+l_1<-cbind(c1,l_1)%>%dplyr::select(-cl_adm_catd)
+tab = t(l_1)
+tab = tableGrob(tab, rows=NULL, theme=ttheme_default(base_size = 12))
+tab$widths <- unit(rep(1/ncol(tab), ncol(tab)), "npc")
+
+# Legend of table
+le <- structure(list(a = "[Cl] (mEq/L)", b ="n", c="Death"), .Names = c("SID","N", "DEATH"), class = "data.frame", row.names = c(NA, -1L))
+le_tab = t(le)
+le_tab = tableGrob(le_tab, rows=NULL,theme=ttheme_default(base_size = 12))
+le_tab$widths <- unit(rep(1/ncol(le_tab), ncol(le_tab)), "npc")
+
+# Combine
+grid.arrange(arrangeGrob(nullGrob(), p_1 + guides(fill=FALSE),widths=c(1,8)), 
+         arrangeGrob(arrangeGrob(nullGrob(),le_tab,heights=c(1,0),widths=c(1,1)), tab, nullGrob(), widths=c(9,45,1)), heights=c(8,1)) 
+
+```
+
+
+
+
+### Whole data without IPW for ICU mortaltiy
+### Without bicarbonate, because if included, interpretation is difficult
+```{r}
+# SID and Cl without IPW
+model<-glm(icumortality~C(sid_adm_catd,base=5)+C(cl_adm_catd,base=7)+
+age_fixed+gender+weight+height+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+heartrate_adm+systolic_adm+temperature_adm+wbc_first+platelets_first+hematocrit_first+hemoglobin_first+albumin_first+bilirubin_first+BUN_first+glucose_first+creat_first+potassium_adm+ua_adm,data=df_me_selected_imputed,family="binomial")
+summary(model)
+
+try<-as.data.frame(summary(model)%>%coef())%>%round(3)
+write.csv(try, file = "table.csv")
+table<-exp(cbind(OR=coef(model), confint.default(model)))%>%round(2)
+try<-print(table, exact = "ascites", quote = FALSE)
+write.csv(try, file = "table.csv")
+
+# Age
+coef(model)[23]
+exp(cbind(coef(model)*10,confint.default(model)*10))[23,]
+# Weight
+coef(model)[25]
+exp(cbind(coef(model)*10,confint.default(model)*10))[25,]
+# Height
+coef(model)[26]
+exp(cbind(coef(model)*10,confint.default(model)*10))[26,]
+# SBP
+coef(model)[38]
+exp(cbind(coef(model)*10,confint.default(model)*10))[38,]
+# BUN
+coef(model)[46]
+exp(cbind(coef(model)*10,confint.default(model)*10))[46,]
+# Glu
+coef(model)[47]
+exp(cbind(coef(model)*20,confint.default(model)*20))[47,]
+
+# Plt
+coef(model)[41]
+exp(cbind(coef(model)*41,confint.default(model)*20))[41,]
+```
+
+### Subgroup without IPW
+```{r}
+summary(df_sid_l_cl_l)
+
+# Low SID and Low Cl
+model<-glm(icumortality~SID_first+chloride_first+
+age_fixed+gender+weight+height+albumin_first+bilirubin_first+BUN_first+wbc_first+platelets_first+hematocrit_first+hemoglobin_first+glucose_first+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+creat_first+potassium_adm+ua_adm+heartrate_adm+systolic_adm+temperature_adm,data=df_sid_l_cl_l,family="binomial")
+summary(model)
+exp(cbind(OR=coef(model), confint.default(model)))%>%round(2)
+
+# Low SID and High Cl
+model<-glm(icumortality~SID_first+chloride_first+
+age_fixed+gender+weight+height+albumin_first+bilirubin_first+BUN_first+wbc_first+platelets_first+hematocrit_first+hemoglobin_first+glucose_first+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+creat_first+potassium_adm+ua_adm+heartrate_adm+systolic_adm+temperature_adm,data=df_sid_l_cl_h,family="binomial")
+summary(model)
+exp(cbind(OR=coef(model), confint.default(model)))%>%round(2)
+
+# High SID and Low Cl
+model<-glm(icumortality~SID_first+chloride_first+
+age_fixed+gender+weight+height+albumin_first+bilirubin_first+BUN_first+wbc_first+platelets_first+hematocrit_first+hemoglobin_first+glucose_first+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+creat_first+potassium_adm+ua_adm+heartrate_adm+systolic_adm+temperature_adm,data=df_sid_h_cl_l,family="binomial")
+summary(model)
+exp(cbind(OR=coef(model), confint.default(model)))%>%round(2)
+# High SID and High Cl
+model<-glm(icumortality~SID_first+chloride_first+
+age_fixed+gender+weight+height+albumin_first+bilirubin_first+BUN_first+wbc_first+platelets_first+hematocrit_first+hemoglobin_first+glucose_first+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+creat_first+potassium_adm+ua_adm+heartrate_adm+systolic_adm+temperature_adm,data=df_sid_h_cl_h,family="binomial")
+summary(model)
+exp(cbind(OR=coef(model), confint.default(model)))%>%round(2)
+```
+
+
+
+## Hospital mortality
+
+```{r}
+# SID
+# Upper figure
+p_1<-df_me_selected_imputed%>%filter(!is.na(sid_adm_catd))%>%group_by(sid_adm_catd)%>%summarize(hospitalmortality_incidence=sum(hospitalmortality,na.rm = T)/n()*100)%>%ggplot()+
+  geom_bar(aes(x=sid_adm_catd,y=hospitalmortality_incidence),width=0.8,stat="identity")+
+  scale_x_discrete(labels=c("-26","26-28","28-30","30-32","32-34","34-36","36-38","38-40","40-42","42-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10))+
+  xlab(expression(paste(mSID," (mEq/L)")))+
+  ylab(label="Hospital mortality (%)")
+
+# Table
+l_1<-df_me_selected_imputed%>%filter(!is.na(sid_adm_catd))%>%group_by(sid_adm_catd)%>%summarize(n=n(),death=sum(hospitalmortality,na.rm = T))
+c1<-data.frame(SID=c("-26","26-28","28-30","30-32","32-34","34-36","36-38","38-40","40-42","42-"))
+l_1<-cbind(c1,l_1)%>%dplyr::select(-sid_adm_catd)
+tab = t(l_1)
+tab = tableGrob(tab, rows=NULL,theme=ttheme_default(base_size = 10))
+tab$widths <- unit(rep(1/ncol(tab), ncol(tab)), "npc")
+
+# Legend of table
+le <- structure(list(a = "SID (mEq/L)", b="n", c ="Death"), .Names = c("SID","N", "DEATH"), class = "data.frame", row.names = c(NA, -1L))
+le_tab = t(le)
+le_tab = tableGrob(le_tab, rows=NULL,theme=ttheme_default(base_size = 10))
+le_tab$widths <- unit(rep(1/ncol(le_tab), ncol(le_tab)), "npc")
+
+# Combine
+grid.arrange(arrangeGrob(nullGrob(), p_1 + guides(fill=FALSE),widths=c(1,8)), 
+         arrangeGrob(arrangeGrob(nullGrob(),le_tab,heights=c(1,0),widths=c(1,1)), tab, nullGrob(), widths=c(10,45,1)), heights=c(8,1)) 
+
+```
+
+```{r}
+# Cl
+# Upper figure
+p_1<-df_me_selected_imputed%>%filter(!is.na(cl_adm_catd))%>%group_by(cl_adm_catd)%>%summarize(hospitalmortality_incidence=sum(hospitalmortality,na.rm = T)/n()*100)%>%ggplot()+geom_bar(aes(x=cl_adm_catd,y=icumortality_incidence),width=0.8,stat="identity")+scale_x_discrete(labels=c("-94","94-96","96-98","98-100","100-102","102-104","104-106","106-108","108-110","110-112","112-114","114-116","116-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10))+xlab(expression(paste("Cl"^"-"," (mEq/L)")))+ ylab(label="Hospital mortality (%)")
+
+# Table
+l_1<-df_me_selected_imputed%>%filter(!is.na(cl_adm_catd))%>%group_by(cl_adm_catd)%>%summarize(n=n(),death=sum(hospitalmortality,na.rm = T))
+c1<-data.frame(time=c("-94","94-96","96-98","98-100","100-102","102-104","104-106","106-108","108-110","110-112","112-114","114-116","116-"))
+l_1<-cbind(c1,l_1)%>%dplyr::select(-cl_adm_catd)
+tab = t(l_1)
+tab = tableGrob(tab, rows=NULL, theme=ttheme_default(base_size = 8))
+tab$widths <- unit(rep(1/ncol(tab), ncol(tab)), "npc")
+
+# Legend of table
+le <- structure(list(a = "Cl (mEq/L)", b ="n", c="Death"), .Names = c("SID","N", "DEATH"), class = "data.frame", row.names = c(NA, -1L))
+le_tab = t(le)
+le_tab = tableGrob(le_tab, rows=NULL,theme=ttheme_default(base_size = 8))
+le_tab$widths <- unit(rep(1/ncol(le_tab), ncol(le_tab)), "npc")
+
+# Combine
+grid.arrange(arrangeGrob(nullGrob(), p_1 + guides(fill=FALSE),widths=c(1,8)), 
+         arrangeGrob(arrangeGrob(nullGrob(),le_tab,heights=c(1,0),widths=c(1,1)), tab, nullGrob(), widths=c(9,45,1)), heights=c(8,1)) 
+
+```
+
+
+```{r}
+df_me_selected_imputed<-df_me_selected_imputed%>%mutate(hospitalmortality=as.numeric(as.character(hospitalmortality)))
+#SID
+df_me_selected_imputed%>%filter(!is.na(hospitalmortality),!is.na(sid_adm_catd))%>%group_by(sid_adm_catd)%>%summarize(hospitalmortality_incidence=sum(hospitalmortality)/n()*100)%>%ggplot()+
+  geom_bar(aes(x=sid_adm_catd,y=hospitalmortality_incidence),width=0.8,stat="identity")+
+  scale_x_discrete(labels=c("-26","26-28","28-30","30-32","32-34","34-36","36-38","38-40","40-42","42-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10))+
+  xlab(expression(paste(mSID," (mEq/L)")))+
+  ylab(label="Hospital mortality (%)")
+
+
+#Cl
+df_me_selected_imputed%>%filter(!is.na(hospitalmortality),!is.na(cl_adm_catd))%>%group_by(cl_adm_catd)%>%summarize(hospitalmortality_incidence=sum(hospitalmortality)/n()*100)%>%ggplot()+geom_bar(aes(x=cl_adm_catd,y=hospitalmortality_incidence),width=0.8,stat="identity")+scale_x_discrete(labels=c("-94","94-96","96-98","98-100","100-102","102-104","104-106","106-108","108-110","110-112","112-114","114-116","116-"))+ theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10))+xlab(expression(paste("Cl"^"-"," (mEq/L)")))+ ylab(label="Hospital mortality (%)")
+```
+
+### Regression model
+### Whole data without IPW for hospital mortality
+### Without bicarbonate, because if included, interpretation is difficult
+```{r}
+# SID and Cl without IPW
+model<-glm(hospitalmortality~C(sid_adm_catd,base=5)+C(cl_adm_catd,base=7)+
+age_fixed+gender+weight+height+ethnicity+pasthistory_chf+pasthistory_pvd+pasthistory_hypertension+pasthistory_copd+pasthistory_diabetes+pasthistory_malignancy+heartrate_adm+systolic_adm+temperature_adm+wbc_first+platelets_first+hematocrit_first+hemoglobin_first+albumin_first+bilirubin_first+BUN_first+glucose_first+creat_first+potassium_adm+ua_adm,data=df_me_selected_imputed,family="binomial")
+summary(model)
+
+try<-as.data.frame(summary(model)%>%coef())%>%round(3)
+write.csv(try, file = "table.csv")
+table<-exp(cbind(OR=coef(model), confint.default(model)))%>%round(2)
+try<-print(table, exact = "ascites", quote = FALSE)
+write.csv(try, file = "table.csv")
+
+```
+
+
+
+
+##############
+# Additional analyses
+```{r}
+colnames(df_me_selected_imputed)
+ggplot(df_me_selected_imputed,aes(SID_first,bicarbonate_adm))+
+  geom_point(alpha=0.3)+
+  xlab(expression(paste(mSID," (mEq/L)")))+
+  ylab(label="Serum bicarbonate (mEq/L)")
+
+cor.test(df_me_selected_imputed$SID_first, df_me_selected_imputed$bicarbonate_adm, method="pearson", conf.level=0.95)
+
+ggplot(df_me_selected_imputed,aes(SID_first,chloride_first))+
+  geom_point(alpha=0.5)+
+  ylab(expression(paste("[Cl]"^"-"," (mEq/L)")))+
+  xlab(expression(paste(mSID," (mEq/L)")))
+
+cor.test(df_me_selected_imputed$SID_first, df_me_selected_imputed$chloride_first, method="pearson", conf.level=0.95)
+
+
+write.csv(df_me_selected_imputed,"test.csv")
+```
+
+
+
+
+
+
+
+
+
+
