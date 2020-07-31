@@ -13,3 +13,113 @@ output:
 knit: (function(inputFile, encoding) { rmarkdown::render(inputFile, encoding = encoding, output_file = paste0(substr(inputFile,1,nchar(inputFile)-4)," ",Sys.Date(),'.html')) })
 ---
 
+Kimura Satoshi <kimsato1034@hotmail.co.jp> via mitprod.onmicrosoft.com 
+to:	"Raines,Nathan H (BIDMC - Med-Nephrology Spec Fund)" <nraines@bidmc.harvard.edu>,
+Leo Anthony Celi <leoanthonyceli@yahoo.com>,
+"maarmeng@mit.edu" <maarmeng@mit.edu>
+date:	Jul 27, 2020, 6:43 PM
+subject:	Re: [External] Your Submission to Critical Care Explorations
+
+"df_me_selected_comp" does not have missing values for primary predictors (Na, Cl, SID), and can be used for table 1.
+Table 1: It is more informative to present lab results of the cohort in the form of median (IQR) rather than average (SD). Data distribution presentation in the form of average (SD) can be applied to time series information (e.g. heart rate, blood pressure, temperature, etc.)
+I believe Miguel also volunteered to do this. Satoshi will integrate into the paper. 
+
+"df_me_selected_imputed" has all of the data which still include missing values for the primary predictors. You can you this for analyses such as correlation matrix.
+2. Before performing multivariable analysis, were steps taken to study linear correlation among variables? Such study can be helpful and add more information in the manuscript.
+Miguel will create a correlation matrix to be included as an appendix. Satoshi will integrate it into the submission. 
+
+# Environment
+
+```{r}
+library(readr)
+library(tableone)
+library(tidyverse)
+library(xlsx)
+library(ggcorrplot)
+```
+
+
+# Data Load
+
+```{r}
+df_me_selected_comp <- read_csv("../data/df_me_selected_comp.csv", 
+    col_types = cols(X1 = col_skip(), gender = col_character(), 
+        hospitalmortality = col_character(), 
+        icumortality = col_character(), pasthistory_chf = col_character(), 
+        pasthistory_pvd = col_character(), 
+        pasthistory_hypertension = col_character(), 
+        pasthistory_copd = col_character(), 
+        pasthistory_diabetes = col_character(), 
+        pasthistory_cld = col_character(), 
+        pasthistory_malignancy = col_character(), 
+        mechvent_day01 = col_character(), 
+        AKIstage = col_character(), surgery = col_character(), 
+        cl_adm_cat = col_character(), na_adm_cat = col_character(), 
+        sid_adm_cat = col_character(), cl_adm_catd = col_character(), 
+        na_adm_catd = col_character(), sid_adm_catd = col_character()))
+
+df_me_selected_imputed <- read_csv("../data/df_me_selected_imputed.csv", 
+    col_types = cols(X1 = col_skip(), gender = col_character(), 
+        hospitalmortality = col_character(), 
+        icumortality = col_character(), pasthistory_chf = col_character(), 
+        pasthistory_pvd = col_character(), 
+        pasthistory_hypertension = col_character(), 
+        pasthistory_copd = col_character(), 
+        pasthistory_diabetes = col_character(), 
+        pasthistory_cld = col_character(), 
+        pasthistory_malignancy = col_character(), 
+        mechvent_day01 = col_character(), 
+        AKIstage = col_character(), surgery = col_character(), 
+        cl_adm_cat = col_character(), na_adm_cat = col_character(), 
+        sid_adm_cat = col_character(), cl_adm_catd = col_character(), 
+        na_adm_catd = col_character(), sid_adm_catd = col_character()))
+```
+# Table 1
+
+```{r}
+contvars<-c("age_fixed","weight","height","albumin_first","bilirubin_first","BUN_first","wbc_first","platelets_first","hematocrit_first","hemoglobin_first","glucose_first","unitlos_days","hosplos_days","sodium_first","chloride_first","SID_first","peakcreat48h","peakcreat7d","potassium_adm","bicarbonate_adm","ua_adm","heartrate_adm","systolic_adm","temperature_adm","ventdays_days","creat_first")
+
+catvars<-c("gender","ethnicity","hospitalmortality","icumortality","pasthistory_chf","pasthistory_pvd","pasthistory_hypertension","pasthistory_copd","pasthistory_diabetes","pasthistory_cld","pasthistory_malignancy","mechvent_day01","rrt_bin","AKIstage","dialysis_in_the_icu_first7days_bin","surgery","cl_adm_cat","na_adm_cat","cl_adm_catd","na_adm_catd","sid_adm_catd","aki")
+
+allvars<-c(contvars,catvars)
+
+statifyby<-'sid_adm_cat'
+
+table1 <- CreateTableOne(vars = allvars, data = df_me_selected_comp, factorVars = catvars
+                         )
+
+table1strat <- CreateTableOne(vars = allvars, data = df_me_selected_comp, factorVars = catvars
+                         , testNormal=oneway.test 
+                         , strata = statifyby
+                         , smd = TRUE
+                         )
+table1_printed<-as.data.frame(print(table1
+                                    , nonnormal = contvars # in case there is a variable not normally distributed where we want to share median IQR
+                                    ,missing = T
+                                    ,minMax = F
+
+                                    ))
+table1strat_printed<-as.data.frame(print(table1strat
+                                    , nonnormal = contvars # in case there is a variable not normally distributed where we want to share median IQR
+                                    ,missing = F
+                                    ,minMax = F))
+
+table1_final<-cbind(table1_printed,table1strat_printed)
+table1_final$Missing_N<-round((as.numeric(table1_final['n',]$Overall)*as.numeric(table1_final$Missing))/100,0)
+
+table1_final<-table1_final%>%rename(Missing_pct=Missing)
+
+table1_final
+write.xlsx(as.data.frame(print(table1_final)), paste("SID_aki_table1_final", Sys.Date(),".xlsx",sep=''))
+```
+
+# Correlation plot
+
+```{r fig.height=10, fig.width=10}
+complete_dataset_for_cor<-df_me_selected_imputed[,contvars]
+complete_dataset_for_cor<-complete_dataset_for_cor[complete.cases(complete_dataset_for_corr),]
+ggcorrplot(round(cor(complete_dataset_for_cor[,contvars]), 1), method = "circle")
+
+ggsave(paste('Correlation_plot_',Sys.Date(),'.tiff',sep=''),device = 'tiff')
+```
+

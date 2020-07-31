@@ -1,8 +1,16 @@
 ---
-title: "01_dataset_creation"
-author: "Miguel Armengol"
-date: "2/20/2019"
-output: html_document
+title: "SID AKI Study: dataset creation"
+author: Miguel Ángel Armengol de la Hoz
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  html_notebook:
+    code_folding: show
+    number_sections: yes
+    theme: flatly
+    toc: yes
+    toc_float: yes
+
+knit: (function(inputFile, encoding) { rmarkdown::render(inputFile, encoding = encoding, output_file = paste0(substr(inputFile,1,nchar(inputFile)-4)," ",Sys.Date(),'.html')) })
 ---
 
 # Environment
