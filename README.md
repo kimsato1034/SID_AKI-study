@@ -1,5 +1,7 @@
 # SID_AKI-study
 
+Code repository for the project _[“Association of Chloride Ion and Sodium-Chloride Difference With Acute Kidney Injury and Mortality in Critically Ill Patients”.](https://journals.lww.com/ccejournal/Fulltext/2020/12000/Association_of_Chloride_Ion_and_Sodium_Chloride.5.aspx)_
+
 # Inclusion criteria
 First admission to ICU  
 18 years old or older  
@@ -132,3 +134,7 @@ APACHE III
 - [x] Diabetes mellitus  
 - [x] Chronic liver disease  
 - [x] Malignancy  
+
+[![DOI](https://zenodo.org/badge/doi/10.5281/zenodo.18914.svg)](https://doi.org/10.1097/cce.0000000000000247)  
+[![forthebadge made-with-python](http://ForTheBadge.com/images/badges/made-with-python.svg)](https://www.python.org/)  
+[![Made withJupyter](https://img.shields.io/badge/Made%20with-Jupyter-orange?style=for-the-badge&logo=Jupyter)](https://jupyter.org/try)  
