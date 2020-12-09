@@ -8,6 +8,12 @@
 -- but only those that have a valid:
 -- sodium_concentration or chloride_concentration (valid defined by Satoshi).
 
+--Those numbers are the amount of sodium and chloride in each fluid.
+--For example, 0.9% sodium chloride (so-called normal saline) includes 154 mEq of sodium and 154 mEq of chloride in 1000ml. 
+--0.45% sodium chloride conteins the half, i.e. 77 mEq of each electrolytes.
+--Sodium bicarbonate 100 mEq includes 100 mEq of sodium without chloride.
+
+
 SELECT
 patientunitstayid
 ,SUM(CASE
